@@ -64,6 +64,33 @@
     });
   }
 
+  // ---------- rewarded ad (AdsGram SDK, Telegram Mini App) ----------
+  const AD_REWARD_COINS = 50;
+  const ADSGRAM_BLOCK_ID = "42733";
+  let adController = null;
+  try {
+    if (window.Adsgram) {
+      adController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+    }
+  } catch (e) {
+    // SDK недоступен (например, тестируем не внутри Telegram) — просто игнорируем
+  }
+
+  function watchAdForCoins(){
+    if(!adController){
+      alert('Реклама пока недоступна');
+      return;
+    }
+    adController.show().then(()=>{
+      currency += AD_REWARD_COINS;
+      saveCurrency();
+      renderColorPicker();
+      renderMetaShop();
+    }).catch(()=>{
+      // реклама не досмотрена/ошибка — ничего не начисляем
+    });
+  }
+
   // ---------- stories (persistent, bought with the same currency) ----------
   let unlockedStories = JSON.parse(localStorage.getItem('sr_stories') || '[]');
   function saveStories(){ localStorage.setItem('sr_stories', JSON.stringify(unlockedStories)); }
@@ -110,6 +137,21 @@
     });
     hpRow.appendChild(hpBtn);
     wrap.appendChild(hpRow);
+
+    const adRow = document.createElement('div');
+    adRow.className = 'metaRow';
+    adRow.innerHTML = `
+      <div class="metaInfo">
+        <div class="metaTitle">Реклама за монеты</div>
+        <div class="metaDesc">+${AD_REWARD_COINS} монет за просмотр</div>
+      </div>
+    `;
+    const adBtn = document.createElement('button');
+    adBtn.className = 'metaBtn';
+    adBtn.textContent = 'Смотреть';
+    adBtn.addEventListener('click', watchAdForCoins);
+    adRow.appendChild(adBtn);
+    wrap.appendChild(adRow);
 
     const storyRow = document.createElement('div');
     storyRow.className = 'metaRow';

@@ -357,6 +357,11 @@
     pointer-events: none;
   }
 </style>
+
+<!-- AdsGram SDK (реклама с вознаграждением для Telegram Mini App).
+     Скрипт универсальный, ничего в нём менять не нужно —
+     твой личный blockId прописан в upgrades.js. -->
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 </head>
 <body>
 
@@ -456,9 +461,9 @@
 <!-- Игровые модули: порядок важен (background/upgrades/enemies не обёрнуты в функцию,
      поэтому их let/const видны следующим скриптам; game.js подключается последним
      и запускает главный цикл) -->
-<script src="background.js?v=4"></script>
-<script src="upgrades.js?v=4"></script>
-<script src="enemies.js?v=4"></script>
-<script src="game.js?v=4"></script>
+<script src="background.js?v=6"></script>
+<script src="upgrades.js?v=7"></script>
+<script src="enemies.js?v=6"></script>
+<script src="game.js?v=6"></script>
 </body>
 </html>
