@@ -30,7 +30,8 @@
 
 
   const MAX_HP = 5;
-  let maxHP = 3;
+  const BASE_MAX_HP = 3;
+  let maxHP = BASE_MAX_HP + hpLevel;
   let hp = maxHP;
   let shield = 0;
   const MAX_SHIELD = 3;
@@ -55,6 +56,10 @@
   const hint = document.getElementById('hint');
   const overlay = document.getElementById('overlay');
   const playBtn = document.getElementById('playBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const exitBtn = document.getElementById('exitBtn');
   const hpWrap = document.getElementById('hpWrap');
   const shieldWrap = document.getElementById('shieldWrap');
   const upgradeOverlay = document.getElementById('upgradeOverlay');
@@ -199,11 +204,6 @@
     ctx.shadowBlur = 22;
 
     // body
-    const bodyGrad = ctx.createLinearGradient(0,-p.r,0,p.r);
-    bodyGrad.addColorStop(0, colScheme.light);
-    bodyGrad.addColorStop(0.5, colScheme.mid);
-    bodyGrad.addColorStop(1, colScheme.dark);
-    ctx.fillStyle = bodyGrad;
     ctx.beginPath();
     ctx.moveTo(0, -p.r*1.15);
     ctx.quadraticCurveTo(p.r*0.9, p.r*0.2, p.r*0.75, p.r*0.75);
@@ -212,7 +212,31 @@
     ctx.lineTo(-p.r*0.75, p.r*0.75);
     ctx.quadraticCurveTo(-p.r*0.9, p.r*0.2, 0, -p.r*1.15);
     ctx.closePath();
-    ctx.fill();
+
+    if(colScheme.flag){
+      // outer glow silhouette first (shadow gets clipped away once we clip below)
+      ctx.fillStyle = colScheme.mid;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.save();
+      ctx.clip();
+      const topY = -p.r*1.15, botY = p.r*0.9;
+      const bandH = (botY - topY) / 3;
+      ctx.fillStyle = colScheme.light;
+      ctx.fillRect(-p.r, topY, p.r*2, bandH);
+      ctx.fillStyle = colScheme.mid;
+      ctx.fillRect(-p.r, topY+bandH, p.r*2, bandH);
+      ctx.fillStyle = colScheme.dark;
+      ctx.fillRect(-p.r, topY+bandH*2, p.r*2, bandH+2);
+      ctx.restore();
+    } else {
+      const bodyGrad = ctx.createLinearGradient(0,-p.r,0,p.r);
+      bodyGrad.addColorStop(0, colScheme.light);
+      bodyGrad.addColorStop(0.5, colScheme.mid);
+      bodyGrad.addColorStop(1, colScheme.dark);
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+    }
 
     ctx.shadowBlur = 0;
     // cockpit
@@ -239,6 +263,25 @@
     ctx.lineTo(-p.r*0.55, p.r*0.55);
     ctx.closePath();
     ctx.fill();
+
+    if(colScheme.symbol === 'heart'){
+      const hs = p.r*0.34;
+      ctx.save();
+      ctx.translate(0, p.r*0.18);
+      ctx.scale(hs, hs);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(255,255,255,0.8)';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(0, 0.32);
+      ctx.bezierCurveTo(0, 0.1, -0.28, -0.12, -0.55, 0.1);
+      ctx.bezierCurveTo(-0.85, 0.38, -0.5, 0.72, 0, 1.02);
+      ctx.bezierCurveTo(0.5, 0.72, 0.85, 0.38, 0.55, 0.1);
+      ctx.bezierCurveTo(0.28, -0.12, 0, 0.1, 0, 0.32);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
 
     ctx.restore();
     ctx.globalAlpha = 1;
@@ -360,10 +403,37 @@
     spawnInterval = Math.max(24, 70 - score/12);
   }
 
+  // ---------- lifecycle: pause everything while the app is hidden ----------
+  // Required by VK Mini Apps review (life-cycle events, e.g. must stop
+  // any activity/sound on VKWebAppViewHide). Also covers a plain browser
+  // tab switch via the Page Visibility API as a fallback.
+  let appHidden = false;
+  document.addEventListener('visibilitychange', () => {
+    appHidden = document.hidden;
+  });
+  try {
+    if (window.vkBridge) {
+      window.vkBridge.subscribe((e) => {
+        const type = e && e.detail && e.detail.type;
+        if (type === 'VKWebAppViewHide') {
+          appHidden = true;
+        } else if (type === 'VKWebAppViewRestore' || type === 'VKWebAppUpdateConfig') {
+          appHidden = false;
+        }
+      });
+    }
+  } catch (e) {
+    // not running inside VK — ignore
+  }
+
   // ---------- main loop ----------
   let lastTime = performance.now();
   function loop(now){
     requestAnimationFrame(loop);
+    if(appHidden || state==='paused'){
+      lastTime = now;
+      return;
+    }
     const rawDt = (now - lastTime) / 16.6667; // 1 = one frame at 60fps
     lastTime = now;
     const dt = Math.max(0, Math.min(3, rawDt)); // clamp to avoid huge jumps (tab switch, lag spikes)
@@ -444,7 +514,7 @@
     nightMode = true;
     score = 0;
     scoreEl.textContent = '0';
-    maxHP = 3;
+    maxHP = BASE_MAX_HP + hpLevel;
     hp = maxHP;
     shield = 0;
     doubleShot = false;
@@ -465,7 +535,7 @@
 
   function startGame(){
     score = 0;
-    maxHP = 3;
+    maxHP = BASE_MAX_HP + hpLevel;
     hp = maxHP;
     shield = 0;
     doubleShot = false;
@@ -484,6 +554,7 @@
     state = 'playing';
     overlay.style.display = 'none';
     hud.style.display = 'flex';
+    pauseBtn.style.display = 'flex';
     hint.style.display = 'block';
     setTimeout(()=>{ hint.style.display='none'; }, 2600);
   }
@@ -491,6 +562,7 @@
   function endGame(){
     state = 'dead';
     hud.style.display = 'none';
+    pauseBtn.style.display = 'none';
     hint.style.display = 'none';
     const finalScore = Math.floor(score);
     if(finalScore > best){
@@ -505,14 +577,62 @@
       <div class="bestLine">★ Рекорд: ${best}</div>
       <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
       <div id="colorPicker"></div>
+      <div id="metaShop"></div>
       <button id="playBtn">ЕЩЁ РАЗ</button>
     `;
     overlay.style.display = 'flex';
     renderColorPicker();
+    renderMetaShop();
     document.getElementById('playBtn').addEventListener('click', startGame);
   }
 
+  function pauseGame(){
+    if(state !== 'playing') return;
+    state = 'paused';
+    pauseOverlay.style.display = 'flex';
+  }
+
+  function resumeGame(){
+    if(state !== 'paused') return;
+    state = 'playing';
+    pauseOverlay.style.display = 'none';
+  }
+
+  function exitToMenu(){
+    const finalScore = Math.floor(score);
+    if(finalScore > best){
+      best = finalScore;
+      localStorage.setItem('sr_best', best);
+    }
+    bestEl.textContent = 'РЕКОРД: ' + best;
+
+    state = 'menu';
+    pauseOverlay.style.display = 'none';
+    hud.style.display = 'none';
+    pauseBtn.style.display = 'none';
+    hint.style.display = 'none';
+    bullets = []; enemies = []; enemyBullets = []; particles = [];
+
+    overlay.innerHTML = `
+      <h1>STAR RAIDER</h1>
+      <div class="sub">Уклоняйся, стреляй по роботам-дронам и набирай очки.<br>Одно столкновение — и миссия окончена.</div>
+      <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
+      <div id="colorPicker"></div>
+      <div id="metaShop"></div>
+      <button id="playBtn">ИГРАТЬ</button>
+    `;
+    overlay.style.display = 'flex';
+    renderColorPicker();
+    renderMetaShop();
+    document.getElementById('playBtn').addEventListener('click', startGame);
+  }
+
+  pauseBtn.addEventListener('click', pauseGame);
+  resumeBtn.addEventListener('click', resumeGame);
+  exitBtn.addEventListener('click', exitToMenu);
+
   renderColorPicker();
+  renderMetaShop();
   playBtn.addEventListener('click', startGame);
 
   requestAnimationFrame(loop);

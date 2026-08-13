@@ -65,7 +65,7 @@
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
     box-shadow: 0 0 8px rgba(255,190,0,0.9);
   }
-  #upgradeOverlay {
+  #upgradeOverlay, #pauseOverlay, #storiesOverlay {
     position: absolute;
     top:0; left:0; width:100%; height:100%;
     display: none;
@@ -76,28 +76,136 @@
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
   }
-  #upgradeOverlay .box {
+  #upgradeOverlay .box, #pauseOverlay .box, #storiesOverlay .box {
     text-align: center;
     padding: 26px 30px;
     max-width: 320px;
   }
-  #upgradeOverlay h2 {
+  #upgradeOverlay h2, #pauseOverlay h2, #storiesOverlay h2 {
     color: #ffd76a;
     font-size: 24px;
     letter-spacing: 1px;
     text-shadow: 0 0 18px rgba(255,215,100,0.6);
     margin-bottom: 6px;
   }
-  #upgradeOverlay .sub {
+  #upgradeOverlay .sub, #pauseOverlay .sub, #storiesOverlay .sub {
     color: #9fdcff;
     font-size: 14px;
     margin-bottom: 22px;
   }
-  #upgradeOverlay .choices {
+  #upgradeOverlay .choices, #pauseOverlay .choices, #storiesOverlay .choices {
     display: flex;
     gap: 14px;
     justify-content: center;
     flex-wrap: wrap;
+  }
+  #pauseBtn {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(8,18,32,0.6);
+    color: #eafcff;
+    font-size: 15px;
+    letter-spacing: -2px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(0,200,255,0.4), inset 0 0 0 1px rgba(255,255,255,0.15);
+  }
+  #pauseBtn:active { transform: translateX(-50%) scale(0.9); }
+
+  #metaShop {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 4px 0 22px;
+    pointer-events: all;
+  }
+  .metaRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 10px 14px;
+  }
+  .metaTitle {
+    color: #eafcff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: left;
+  }
+  .metaDesc {
+    color: #9fdcff;
+    font-size: 11px;
+    text-align: left;
+    margin-top: 2px;
+  }
+  .metaBtn {
+    flex-shrink: 0;
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #001019;
+    background: linear-gradient(180deg,#4be9ff,#00b4ff);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(0,190,255,0.5);
+  }
+  .metaBtn:active { transform: scale(0.94); }
+  .metaBtn:disabled {
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.4);
+    box-shadow: none;
+    cursor: default;
+  }
+
+  #storiesOverlay .box.storiesBox {
+    max-width: 380px;
+    max-height: 82vh;
+    overflow-y: auto;
+  }
+  #storiesList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+    pointer-events: all;
+  }
+  .storyRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 10px 14px;
+  }
+  .storyTitle {
+    color: #eafcff;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+  }
+  .storyText {
+    color: #cfeaff;
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: left;
+    white-space: pre-wrap;
   }
   .upgradeBtn {
     padding: 14px 20px;
@@ -274,6 +382,19 @@
   </div>
 </div>
 
+<button id="pauseBtn" aria-label="Пауза">❚❚</button>
+
+<div id="pauseOverlay">
+  <div class="box">
+    <h2>ПАУЗА</h2>
+    <div class="sub">Игра приостановлена</div>
+    <div class="choices">
+      <button id="resumeBtn" class="upgradeBtn">Продолжить</button>
+      <button id="exitBtn" class="upgradeBtn shieldBtn">Выйти в меню</button>
+    </div>
+  </div>
+</div>
+
 <div id="hint" style="display:none">Двигай пальцем/мышью — стрельба идёт сама</div>
 
 <div id="upgradeOverlay">
@@ -294,7 +415,17 @@
   <div class="sub">Уклоняйся, стреляй по роботам-дронам и набирай очки.<br>Одно столкновение — и миссия окончена.</div>
   <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
   <div id="colorPicker"></div>
+  <div id="metaShop"></div>
   <button id="playBtn">ИГРАТЬ</button>
+</div>
+
+<div id="storiesOverlay">
+  <div class="box storiesBox">
+    <h2>ИСТОРИИ</h2>
+    <div class="sub">Покупай и читай истории за монеты</div>
+    <div id="storiesList"></div>
+    <button id="storiesCloseBtn" class="upgradeBtn">Назад</button>
+  </div>
 </div>
 
 
