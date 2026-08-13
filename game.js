@@ -36,9 +36,13 @@
   const MAX_SHIELD = 3;
   let nextUpgradeScore = 500;
   const UPGRADE_INTERVAL = 500;
-  const ROBOT_SHOOT_SCORE = 2000;
   let doubleShot = false;
   let bulletDamage = 1;
+  let bossActive = false;
+  let boss2000Spawned = false;
+  let boss5000Spawned = false;
+  let nightMode = false;
+  const LOOP_SCORE = 10000;
   let t = 0;
   let shakeTime = 0, shakeMag = 0;
   let spawnTimer = 0;
@@ -241,6 +245,29 @@
   }
 
 
+  function drawBossHealthBar(){
+    const boss = enemies.find(e=>e.isBoss);
+    if(!boss) return;
+    const barW = Math.min(320, W*0.7);
+    const barH = 14;
+    const x = W/2 - barW/2;
+    const y = 14;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(x-3,y-3,barW+6,barH+6);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(x,y,barW,barH);
+    const pct = Math.max(0, boss.hp/boss.maxHp);
+    ctx.fillStyle = boss.bossKind==='ship' ? '#dfe6f2' : '#ff5f5f';
+    ctx.fillRect(x,y,barW*pct,barH);
+    ctx.fillStyle = '#fff';
+    ctx.font = '11px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(boss.bossKind==='ship' ? 'БЕЛЫЙ КОРАБЛЬ-ПРИЗРАК' : 'БОЕВОЙ РОБОТ', W/2, y+barH+14);
+    ctx.restore();
+  }
+
+
   // ---------- game loop pieces ----------
   function updatePlayer(dt){
     // ease toward target
@@ -359,8 +386,22 @@
       shootTimer -= dt;
       if(shootTimer<=0){ shoot(); shootTimer = 8; }
 
-      spawnTimer -= dt;
-      if(spawnTimer<=0){ spawnEnemy(); spawnTimer = spawnInterval + Math.random()*20; }
+      if(!bossActive){
+        if(!boss2000Spawned && score >= 2000){
+          spawnBossRobot();
+          boss2000Spawned = true;
+          bossActive = true;
+        } else if(!boss5000Spawned && score >= 5000){
+          spawnBossShip();
+          boss5000Spawned = true;
+          bossActive = true;
+        }
+      }
+
+      if(!bossActive){
+        spawnTimer -= dt;
+        if(spawnTimer<=0){ spawnEnemy(); spawnTimer = spawnInterval + Math.random()*20; }
+      }
 
       updateBullets(dt);
       updateEnemies(dt);
@@ -370,21 +411,58 @@
       score += 0.12 * dt;
       scoreEl.textContent = Math.floor(score);
 
-      maybeShowUpgrade();
+      if(score >= LOOP_SCORE){
+        triggerLoopRestart();
+      } else {
+        maybeShowUpgrade();
+      }
     } else {
       updateParticles(dt);
     }
 
     drawParticles();
-    for(const e of enemies) drawEnemy(e);
+    for(const e of enemies){
+      if(e.bossKind === 'ship') drawEnemyShip(e);
+      else drawEnemy(e);
+    }
     drawBullets();
     drawEnemyBullets();
     if(state==='playing' || state==='dead' || state==='upgrade') drawShip();
+    if(state==='playing' || state==='upgrade') drawBossHealthBar();
 
     ctx.restore();
   }
 
   // ---------- game flow ----------
+  function triggerLoopRestart(){
+    const finalScore = Math.floor(score);
+    if(finalScore > best){
+      best = finalScore;
+      localStorage.setItem('sr_best', best);
+      bestEl.textContent = 'РЕКОРД: ' + best;
+    }
+    nightMode = true;
+    score = 0;
+    scoreEl.textContent = '0';
+    maxHP = 3;
+    hp = maxHP;
+    shield = 0;
+    doubleShot = false;
+    bulletDamage = 1;
+    nextUpgradeScore = UPGRADE_INTERVAL;
+    boss2000Spawned = false;
+    boss5000Spawned = false;
+    bossActive = false;
+    bullets = []; enemies = []; enemyBullets = []; particles = [];
+    spawnTimer = 40;
+    resetPlayer();
+    renderHP();
+    renderShield();
+    upgradeOverlay.style.display = 'none';
+    if(state==='upgrade') state = 'playing';
+    shakeTime = 30; shakeMag = 18;
+  }
+
   function startGame(){
     score = 0;
     maxHP = 3;
@@ -392,6 +470,10 @@
     shield = 0;
     doubleShot = false;
     bulletDamage = 1;
+    bossActive = false;
+    boss2000Spawned = false;
+    boss5000Spawned = false;
+    nightMode = false;
     nextUpgradeScore = UPGRADE_INTERVAL;
     bullets = []; enemies = []; enemyBullets = []; particles = [];
     spawnTimer = 40;

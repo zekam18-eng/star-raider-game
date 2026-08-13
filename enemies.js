@@ -12,12 +12,50 @@
       phase: Math.random()*Math.PI*2,
       rot: 0,
       rotSpeed: (Math.random()-0.5)*0.06,
-      shootTimer: 60 + Math.random()*120
+      shootTimer: 30 + Math.random()*55
+    });
+  }
+
+  function spawnBossRobot(){
+    const r = 95;
+    enemies.push({
+      x: W + r*2, y: H/2, baseY: H/2,
+      r, speed: 2.2,
+      type: 'heavy',
+      isBoss: true, bossKind: 'robot',
+      hp: 45, maxHp: 45,
+      phase: Math.random()*Math.PI*2,
+      rot: 0, rotSpeed: 0,
+      entering: true,
+      hoverX: W*0.72,
+      shootTimer: 60
+    });
+  }
+
+  function spawnBossShip(){
+    const r = 60;
+    enemies.push({
+      x: W + r*2, y: H/2, baseY: H/2,
+      r, speed: 2.6,
+      type: 'bossShip',
+      isBoss: true, bossKind: 'ship',
+      hp: 70, maxHp: 70,
+      phase: Math.random()*Math.PI*2,
+      rot: 0, rotSpeed: 0,
+      entering: true,
+      hoverX: W*0.68,
+      shootTimer: 45
     });
   }
 
   function shootEnemyBullet(e){
     enemyBullets.push({ x: e.x - e.r, y: e.y, vx: -(7 + difficulty), r: 4 });
+  }
+
+  function shootBossShipBullet(e){
+    const vx = -(7 + difficulty);
+    enemyBullets.push({ x: e.x - e.r, y: e.y - 12, vx, r: 4 });
+    enemyBullets.push({ x: e.x - e.r, y: e.y + 12, vx, r: 4 });
   }
 
   // ---------- enemy drawing (mechanical robots) ----------
@@ -168,6 +206,77 @@
     }
   }
 
+  function drawEnemyShip(e){
+    const dmg = 1 - e.hp/e.maxHp;
+    const r = e.r;
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    const bank = Math.sin(t*0.04 + e.phase) * 0.15;
+    ctx.rotate(-Math.PI/2 + bank); // nose points left, toward the player
+
+    // thruster flame trailing behind
+    const flameLen = 18 + Math.sin(t*0.5 + e.phase)*5;
+    const fg = ctx.createLinearGradient(0, r*0.6, 0, r*0.6+flameLen);
+    fg.addColorStop(0, 'rgba(210,220,255,0.95)');
+    fg.addColorStop(1, 'rgba(210,220,255,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.moveTo(-6, r*0.55);
+    ctx.lineTo(0, r*0.55+flameLen);
+    ctx.lineTo(6, r*0.55);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowColor = '#eaf1ff';
+    ctx.shadowBlur = 28;
+    const bodyGrad = ctx.createLinearGradient(0,-r,0,r);
+    bodyGrad.addColorStop(0, '#ffffff');
+    bodyGrad.addColorStop(0.5, '#dfe6f2');
+    bodyGrad.addColorStop(1, '#8a94a8');
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, -r*1.15);
+    ctx.quadraticCurveTo(r*0.9, r*0.2, r*0.75, r*0.75);
+    ctx.lineTo(r*0.25, r*0.5);
+    ctx.lineTo(-r*0.25, r*0.5);
+    ctx.lineTo(-r*0.75, r*0.75);
+    ctx.quadraticCurveTo(-r*0.9, r*0.2, 0, -r*1.15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // cockpit, hostile red glow
+    ctx.fillStyle = '#1a2436';
+    ctx.beginPath();
+    ctx.ellipse(0, -r*0.15, r*0.28, r*0.4, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,110,110,0.9)';
+    ctx.beginPath();
+    ctx.ellipse(-r*0.08, -r*0.28, r*0.1, r*0.16, -0.4, 0, Math.PI*2);
+    ctx.fill();
+
+    // wing accents
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath();
+    ctx.moveTo(r*0.75, r*0.75); ctx.lineTo(r*0.95, r*0.55); ctx.lineTo(r*0.55, r*0.55);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-r*0.75, r*0.75); ctx.lineTo(-r*0.95, r*0.55); ctx.lineTo(-r*0.55, r*0.55);
+    ctx.closePath(); ctx.fill();
+
+    ctx.restore();
+
+    if(dmg > 0){
+      ctx.save();
+      ctx.globalAlpha = dmg*0.5;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r*0.9, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   function updateEnemyBullets(dt){
     for(let i=enemyBullets.length-1;i>=0;i--){
       const eb = enemyBullets[i];
@@ -188,21 +297,44 @@
   function updateEnemies(dt){
     for(let i=enemies.length-1;i>=0;i--){
       const e = enemies[i];
-      e.x -= e.speed * dt;
-      e.rot += e.rotSpeed * dt;
-      if(e.type==='zig'){
-        e.y += Math.sin(t*0.05 + e.phase) * 2.4 * dt;
-        e.y = Math.max(e.r, Math.min(H-e.r, e.y));
+
+      if(e.isBoss){
+        if(e.entering){
+          e.x -= e.speed * dt;
+          if(e.x <= e.hoverX){
+            e.x = e.hoverX;
+            e.entering = false;
+          }
+        } else {
+          e.y = e.baseY + Math.sin(t*0.03 + e.phase) * 70;
+          e.y = Math.max(e.r, Math.min(H-e.r, e.y));
+        }
+      } else {
+        e.x -= e.speed * dt;
+        e.rot += e.rotSpeed * dt;
+        if(e.type==='zig'){
+          e.y += Math.sin(t*0.05 + e.phase) * 2.4 * dt;
+          e.y = Math.max(e.r, Math.min(H-e.r, e.y));
+        }
+        if(e.x + e.r < 0){
+          enemies.splice(i,1);
+          continue;
+        }
       }
-      if(e.x + e.r < 0){
-        enemies.splice(i,1);
-        continue;
-      }
-      if(state==='playing' && score >= ROBOT_SHOOT_SCORE && e.x < W-10){
+
+      if(state==='playing' && e.x < W-10){
         e.shootTimer -= dt;
         if(e.shootTimer<=0){
-          shootEnemyBullet(e);
-          e.shootTimer = 70 + Math.random()*100;
+          if(e.bossKind === 'ship'){
+            shootBossShipBullet(e);
+            e.shootTimer = 20 + Math.random()*16;
+          } else if(e.isBoss){
+            shootEnemyBullet(e);
+            e.shootTimer = 26 + Math.random()*22;
+          } else {
+            shootEnemyBullet(e);
+            e.shootTimer = 32 + Math.random()*45;
+          }
         }
       }
       // bullet collision
@@ -211,13 +343,19 @@
         const dx = b.x-e.x, dy = b.y-e.y;
         if(dx*dx+dy*dy < (e.r+b.r)*(e.r+b.r)){
           bullets.splice(j,1);
-          e.hp -= (b.dmg || 1);
+          e.hp -= (b.dmg || 1) * (e.isBoss ? 0.1 : 1);
           spawnParticles(b.x,b.y,6,'#ffd76a',3,0.4);
           if(e.hp<=0){
-            explode(e.x, e.y, e.type==='heavy');
+            explode(e.x, e.y, e.type==='heavy' || e.isBoss);
             enemies.splice(i,1);
-            score += e.type==='heavy' ? 30 : (e.type==='zig' ? 20 : 10);
-            currency += e.type==='heavy' ? 3 : (e.type==='zig' ? 2 : 1);
+            if(e.isBoss){
+              score += e.bossKind==='ship' ? 2000 : 800;
+              currency += e.bossKind==='ship' ? 40 : 15;
+              bossActive = false;
+            } else {
+              score += e.type==='heavy' ? 30 : (e.type==='zig' ? 20 : 10);
+              currency += e.type==='heavy' ? 3 : (e.type==='zig' ? 2 : 1);
+            }
             saveCurrency();
           }
           break;
@@ -230,7 +368,9 @@
         const rad = player.r*0.75+ee.r*0.85;
         if(dx*dx+dy*dy < rad*rad && player.invuln<=0){
           onPlayerHit(ee.x, ee.y);
-          enemies.splice(i,1);
+          if(!ee.isBoss){
+            enemies.splice(i,1);
+          }
         }
       }
     }
