@@ -309,17 +309,21 @@
   }
   #colorPicker {
     display: flex;
-    gap: 14px;
+    flex-wrap: wrap;
+    gap: 16px 12px;
     justify-content: center;
-    margin: 4px 0 30px;
+    align-items: flex-start;
+    max-width: 320px;
+    margin: 4px auto 30px;
     pointer-events: all;
   }
   .colorSwatch {
-    width: 52px; height: 52px;
+    width: 46px; height: 46px;
     border-radius: 50%;
     border: 3px solid rgba(255,255,255,0.22);
     cursor: pointer;
     position: relative;
+    flex-shrink: 0;
     transition: transform .12s ease, border-color .12s ease;
   }
   .colorSwatch:active { transform: scale(0.92); }
@@ -432,9 +436,9 @@
 <!-- Игровые модули: порядок важен (background/upgrades/enemies не обёрнуты в функцию,
      поэтому их let/const видны следующим скриптам; game.js подключается последним
      и запускает главный цикл) -->
-<script src="background.js"></script>
-<script src="upgrades.js"></script>
-<script src="enemies.js"></script>
-<script src="game.js"></script>
+<script src="background.js?v=3"></script>
+<script src="upgrades.js?v=3"></script>
+<script src="enemies.js?v=3"></script>
+<script src="game.js?v=3"></script>
 </body>
 </html>
