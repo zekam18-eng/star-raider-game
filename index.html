@@ -116,6 +116,14 @@
     background: linear-gradient(180deg,#ffe98a,#ffb300);
     box-shadow: 0 0 20px rgba(255,180,0,0.6), inset 0 -3px 6px rgba(0,0,0,0.25);
   }
+  .upgradeBtn.doubleBtn {
+    background: linear-gradient(180deg,#c3b3ff,#7a5cff);
+    box-shadow: 0 0 20px rgba(122,92,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.25);
+  }
+  .upgradeBtn.damageBtn {
+    background: linear-gradient(180deg,#ff9d9d,#e23b3b);
+    box-shadow: 0 0 20px rgba(226,59,59,0.6), inset 0 -3px 6px rgba(0,0,0,0.25);
+  }
   .upgradeBtn:active { transform: scale(0.95); }
 
   #overlay {
@@ -273,8 +281,10 @@
     <h2>УЛУЧШЕНИЕ КОРАБЛЯ</h2>
     <div class="sub">Набрано очков: <span id="upgradeScoreVal">0</span></div>
     <div class="choices">
-      <button id="upgradeLifeBtn" class="upgradeBtn">+1 Жизнь</button>
+      <button id="upgradeLifeBtn" class="upgradeBtn">Восполнить жизнь</button>
       <button id="upgradeShieldBtn" class="upgradeBtn shieldBtn">Щит</button>
+      <button id="upgradeDoubleBtn" class="upgradeBtn doubleBtn">Двойной выстрел</button>
+      <button id="upgradeDamageBtn" class="upgradeBtn damageBtn">Урон +25%</button>
     </div>
   </div>
 </div>

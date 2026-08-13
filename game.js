@@ -34,8 +34,11 @@
   let hp = maxHP;
   let shield = 0;
   const MAX_SHIELD = 3;
-  let nextUpgradeScore = 1000;
+  let nextUpgradeScore = 500;
+  const UPGRADE_INTERVAL = 500;
   const ROBOT_SHOOT_SCORE = 2000;
+  let doubleShot = false;
+  let bulletDamage = 1;
   let t = 0;
   let shakeTime = 0, shakeMag = 0;
   let spawnTimer = 0;
@@ -54,6 +57,8 @@
   const upgradeScoreVal = document.getElementById('upgradeScoreVal');
   const upgradeLifeBtn = document.getElementById('upgradeLifeBtn');
   const upgradeShieldBtn = document.getElementById('upgradeShieldBtn');
+  const upgradeDoubleBtn = document.getElementById('upgradeDoubleBtn');
+  const upgradeDamageBtn = document.getElementById('upgradeDamageBtn');
   bestEl.textContent = 'РЕКОРД: ' + best;
 
   function renderHP(){
@@ -100,9 +105,15 @@
   let stars2 = []; // pickup sparkles unused placeholder
 
   function shoot(){
-    bullets.push({ x: player.x + player.r, y: player.y, vx: 11, r: 4 });
-    // slight side sparks
-    spawnParticles(player.x + player.r, player.y, 2, '#8fe7ff', 1.5, 0.6);
+    if(doubleShot){
+      bullets.push({ x: player.x + player.r, y: player.y - 10, vx: 11, r: 4, dmg: bulletDamage });
+      bullets.push({ x: player.x + player.r, y: player.y + 10, vx: 11, r: 4, dmg: bulletDamage });
+      spawnParticles(player.x + player.r, player.y - 10, 2, '#8fe7ff', 1.5, 0.6);
+      spawnParticles(player.x + player.r, player.y + 10, 2, '#8fe7ff', 1.5, 0.6);
+    } else {
+      bullets.push({ x: player.x + player.r, y: player.y, vx: 11, r: 4, dmg: bulletDamage });
+      spawnParticles(player.x + player.r, player.y, 2, '#8fe7ff', 1.5, 0.6);
+    }
   }
   let shootTimer = 0;
 
@@ -379,7 +390,9 @@
     maxHP = 3;
     hp = maxHP;
     shield = 0;
-    nextUpgradeScore = 1000;
+    doubleShot = false;
+    bulletDamage = 1;
+    nextUpgradeScore = UPGRADE_INTERVAL;
     bullets = []; enemies = []; enemyBullets = []; particles = [];
     spawnTimer = 40;
     resetPlayer();

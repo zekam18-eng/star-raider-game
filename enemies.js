@@ -211,7 +211,7 @@
         const dx = b.x-e.x, dy = b.y-e.y;
         if(dx*dx+dy*dy < (e.r+b.r)*(e.r+b.r)){
           bullets.splice(j,1);
-          e.hp--;
+          e.hp -= (b.dmg || 1);
           spawnParticles(b.x,b.y,6,'#ffd76a',3,0.4);
           if(e.hp<=0){
             explode(e.x, e.y, e.type==='heavy');

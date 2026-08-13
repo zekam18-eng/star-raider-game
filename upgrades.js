@@ -8,7 +8,9 @@
     blue:  { name: 'Синий',   price: 0,   light:'#eafcff', mid:'#7fd9ff', dark:'#1a6fbf', wing:'#ff5fae', glow:'#4dd8ff' },
     red:   { name: 'Красный', price: 60,  light:'#ffe3e3', mid:'#ff5f5f', dark:'#7a1414', wing:'#ffd76a', glow:'#ff6a4d' },
     black: { name: 'Чёрный',  price: 120, light:'#c7ccd1', mid:'#4a4f57', dark:'#08090b', wing:'#4dd8ff', glow:'#8fa0b3' },
-    green: { name: 'Зелёный', price: 180, light:'#e6ffe0', mid:'#4fd85c', dark:'#0f5c1a', wing:'#ffd76a', glow:'#7dffb0' }
+    green: { name: 'Зелёный', price: 180, light:'#e6ffe0', mid:'#4fd85c', dark:'#0f5c1a', wing:'#ffd76a', glow:'#7dffb0' },
+    orange:{ name: 'Оранжевый', price: 240, light:'#ffe8cc', mid:'#ff9c33', dark:'#7a3d0a', wing:'#4dd8ff', glow:'#ffb15e' },
+    purple:{ name: 'Фиолетовый', price: 300, light:'#f0e0ff', mid:'#a35bff', dark:'#3d1470', wing:'#ffd76a', glow:'#c58aff' }
   };
 
   function saveCurrency(){ localStorage.setItem('sr_currency', currency); }
@@ -51,38 +53,47 @@
     });
   }
 
-  // ---------- ship upgrades (every 1000 points) ----------
+  // ---------- ship upgrades (every 500 points of score, not kill currency) ----------
   function maybeShowUpgrade(){
     if(state==='playing' && score >= nextUpgradeScore){
       state = 'upgrade';
       upgradeScoreVal.textContent = Math.floor(score);
-      if(maxHP >= MAX_HP){
+
+      if(hp >= maxHP){
         upgradeLifeBtn.style.display = 'none';
       } else {
         upgradeLifeBtn.style.display = 'inline-block';
-        upgradeLifeBtn.textContent = '+1 Жизнь';
+        upgradeLifeBtn.textContent = 'Восполнить жизнь';
       }
+
       if(shield >= MAX_SHIELD){
         upgradeShieldBtn.style.display = 'none';
       } else {
         upgradeShieldBtn.style.display = 'inline-block';
       }
+
+      if(doubleShot){
+        upgradeDoubleBtn.style.display = 'none';
+      } else {
+        upgradeDoubleBtn.style.display = 'inline-block';
+      }
+
+      upgradeDamageBtn.style.display = 'inline-block';
+      upgradeDamageBtn.textContent = 'Урон +25% (x' + bulletDamage.toFixed(2) + ')';
+
       upgradeOverlay.style.display = 'flex';
     }
   }
 
   function closeUpgrade(){
     upgradeOverlay.style.display = 'none';
-    nextUpgradeScore += 1000;
+    nextUpgradeScore += UPGRADE_INTERVAL;
     if(state==='upgrade') state = 'playing';
   }
 
   upgradeLifeBtn.addEventListener('click', ()=>{
-    if(maxHP < MAX_HP){
-      maxHP++;
-      hp = Math.min(maxHP, hp+1);
-      renderHP();
-    }
+    hp = maxHP;
+    renderHP();
     closeUpgrade();
   });
 
@@ -91,6 +102,16 @@
       shield++;
       renderShield();
     }
+    closeUpgrade();
+  });
+
+  upgradeDoubleBtn.addEventListener('click', ()=>{
+    doubleShot = true;
+    closeUpgrade();
+  });
+
+  upgradeDamageBtn.addEventListener('click', ()=>{
+    bulletDamage *= 1.25;
     closeUpgrade();
   });
 
