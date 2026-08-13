@@ -373,6 +373,26 @@
   }
 </script>
 
+<!-- Telegram Mini Apps: сигнал платформе "приложение готово" + разворот на весь экран.
+     Без ready()/expand() Telegram держит страницу в компактной "шторке". -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+  try {
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      // тёмная тема игры — синхронизируем системные цвета Telegram под неё
+      if (tg.setHeaderColor) tg.setHeaderColor('#000000');
+      if (tg.setBackgroundColor) tg.setBackgroundColor('#000000');
+      // случайный свайп вниз/вверх во время игры не должен сворачивать приложение
+      if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+    }
+  } catch (e) {
+    // если открыто не внутри Telegram — просто игнорируем
+  }
+</script>
+
 <canvas id="gameCanvas"></canvas>
 
 <div id="hud" style="display:none">
@@ -436,9 +456,9 @@
 <!-- Игровые модули: порядок важен (background/upgrades/enemies не обёрнуты в функцию,
      поэтому их let/const видны следующим скриптам; game.js подключается последним
      и запускает главный цикл) -->
-<script src="background.js?v=3"></script>
-<script src="upgrades.js?v=3"></script>
-<script src="enemies.js?v=3"></script>
-<script src="game.js?v=3"></script>
+<script src="background.js?v=4"></script>
+<script src="upgrades.js?v=4"></script>
+<script src="enemies.js?v=4"></script>
+<script src="game.js?v=4"></script>
 </body>
 </html>
