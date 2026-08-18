@@ -44,6 +44,8 @@
   let boss5000Spawned = false;
   let nightMode = false;
   const LOOP_SCORE = 10000;
+  const AD_INTERVAL = 1000;
+  let nextAdScore = AD_INTERVAL;
   let t = 0;
   let shakeTime = 0, shakeMag = 0;
   let spawnTimer = 0;
@@ -483,6 +485,9 @@
 
       if(score >= LOOP_SCORE){
         triggerLoopRestart();
+      } else if(score >= nextAdScore){
+        nextAdScore += AD_INTERVAL;
+        triggerAutoAd();
       } else {
         maybeShowUpgrade();
       }
@@ -520,6 +525,7 @@
     doubleShot = false;
     bulletDamage = 1;
     nextUpgradeScore = UPGRADE_INTERVAL;
+    nextAdScore = AD_INTERVAL;
     boss2000Spawned = false;
     boss5000Spawned = false;
     bossActive = false;
@@ -545,6 +551,7 @@
     boss5000Spawned = false;
     nightMode = false;
     nextUpgradeScore = UPGRADE_INTERVAL;
+    nextAdScore = AD_INTERVAL;
     bullets = []; enemies = []; enemyBullets = []; particles = [];
     spawnTimer = 40;
     resetPlayer();
@@ -584,6 +591,18 @@
     renderColorPicker();
     renderMetaShop();
     document.getElementById('playBtn').addEventListener('click', startGame);
+  }
+
+  function triggerAutoAd(){
+    if(state !== 'playing') return;
+    state = 'paused'; // переиспользуем заморозку цикла — своё окно паузы не показываем
+    if(typeof showAutoAd === 'function'){
+      showAutoAd(()=>{
+        if(state === 'paused') state = 'playing';
+      });
+    } else {
+      state = 'playing';
+    }
   }
 
   function pauseGame(){

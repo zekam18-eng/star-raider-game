@@ -67,10 +67,18 @@
   // ---------- rewarded ad (AdsGram SDK, Telegram Mini App) ----------
   const AD_REWARD_COINS = 50;
   const ADSGRAM_BLOCK_ID = "42733";
+  // ВРЕМЕННО true — показывает тестовый баннер AdsGram независимо от модерации,
+  // чтобы проверить саму интеграцию. Когда площадка пройдёт модерацию и пойдёт
+  // реальная реклама — поставь обратно false и убери debugBannerType.
+  const ADSGRAM_DEBUG = false;
   let adController = null;
   try {
     if (window.Adsgram) {
-      adController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+      adController = window.Adsgram.init(
+        ADSGRAM_DEBUG
+          ? { blockId: ADSGRAM_BLOCK_ID, debug: true, debugBannerType: 'RewardedVideo' }
+          : { blockId: ADSGRAM_BLOCK_ID }
+      );
     }
   } catch (e) {
     // SDK недоступен (например, тестируем не внутри Telegram) — просто игнорируем
@@ -78,7 +86,7 @@
 
   function watchAdForCoins(){
     if(!adController){
-      alert('Реклама пока недоступна');
+      alert('Реклама пока недоступна: SDK не загрузился. Попробуй позже или перезайди в игру.');
       return;
     }
     adController.show().then(()=>{
@@ -86,9 +94,26 @@
       saveCurrency();
       renderColorPicker();
       renderMetaShop();
-    }).catch(()=>{
-      // реклама не досмотрена/ошибка — ничего не начисляем
+    }).catch((result)=>{
+      // реклама не досмотрена/нет рекламы для показа/ошибка — ничего не начисляем
+      alert('Реклама сейчас недоступна (возможно, площадка ещё на модерации в AdsGram). Попробуй позже.');
     });
+  }
+
+  // Автопоказ рекламы каждые 1000 очков (вызывается из game.js). В отличие от
+  // watchAdForCoins() — без алертов и без награды монетами, просто показ ради
+  // монетизации; callback() всегда вызывается, чтобы игра гарантированно
+  // возобновилась (даже если рекламы не было или показ прервался ошибкой).
+  function showAutoAd(callback){
+    if(!adController){
+      if(typeof callback === 'function') callback();
+      return;
+    }
+    adController.show()
+      .catch(()=>{ /* нет рекламы для показа/ошибка — просто продолжаем игру */ })
+      .then(()=>{
+        if(typeof callback === 'function') callback();
+      });
   }
 
   // ---------- stories (persistent, bought with the same currency) ----------
