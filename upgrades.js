@@ -9,7 +9,7 @@
   const HP_UPGRADE_MAX = 6;
   const HP_UPGRADE_BASE_PRICE = 150;
   function hpUpgradePrice(level){ return Math.round(HP_UPGRADE_BASE_PRICE * Math.pow(1.5, level)); }
-  function saveHpLevel(){ localStorage.setItem('sr_hplevel', hpLevel); }
+  function saveHpLevel(){ localStorage.setItem('sr_hplevel', hpLevel); if(typeof pushCloudSave==='function') pushCloudSave(); }
 
   const SHIP_COLORS = {
     blue:  { name: 'Синий',   price: 0,   light:'#eafcff', mid:'#7fd9ff', dark:'#1a6fbf', wing:'#ff5fae', glow:'#4dd8ff' },
@@ -22,9 +22,9 @@
     russia:{ name: 'Триколор', price: 420, light:'#ffffff', mid:'#2b5fd9', dark:'#d61f2c', wing:'#ffd76a', glow:'#8fb3ff', flag:true }
   };
 
-  function saveCurrency(){ localStorage.setItem('sr_currency', currency); }
-  function saveUnlocked(){ localStorage.setItem('sr_unlocked', JSON.stringify(unlockedColors)); }
-  function saveShipColor(){ localStorage.setItem('sr_shipcolor', shipColor); }
+  function saveCurrency(){ localStorage.setItem('sr_currency', currency); if(typeof pushCloudSave==='function') pushCloudSave(); }
+  function saveUnlocked(){ localStorage.setItem('sr_unlocked', JSON.stringify(unlockedColors)); if(typeof pushCloudSave==='function') pushCloudSave(); }
+  function saveShipColor(){ localStorage.setItem('sr_shipcolor', shipColor); if(typeof pushCloudSave==='function') pushCloudSave(); }
 
   function renderColorPicker(){
     const wrap = document.getElementById('colorPicker');
@@ -64,61 +64,57 @@
     });
   }
 
-  // ---------- rewarded ad (AdsGram SDK, Telegram Mini App) ----------
+  // ---------- rewarded / interstitial ads (Yandex Games SDK — ysdk.adv) ----------
   const AD_REWARD_COINS = 50;
-  const ADSGRAM_BLOCK_ID = "42733";
-  // ВРЕМЕННО true — показывает тестовый баннер AdsGram независимо от модерации,
-  // чтобы проверить саму интеграцию. Когда площадка пройдёт модерацию и пойдёт
-  // реальная реклама — поставь обратно false и убери debugBannerType.
-  const ADSGRAM_DEBUG = false;
-  let adController = null;
-  try {
-    if (window.Adsgram) {
-      adController = window.Adsgram.init(
-        ADSGRAM_DEBUG
-          ? { blockId: ADSGRAM_BLOCK_ID, debug: true, debugBannerType: 'RewardedVideo' }
-          : { blockId: ADSGRAM_BLOCK_ID }
-      );
-    }
-  } catch (e) {
-    // SDK недоступен (например, тестируем не внутри Telegram) — просто игнорируем
-  }
 
+  // Кнопка "Смотреть за монеты" в меню — rewarded-реклама, награда выдаётся
+  // только в onRewarded (честно, только если ролик реально досмотрен),
+  // сам показ уже требует явного нажатия кнопки — это и есть согласие пользователя.
   function watchAdForCoins(){
-    if(!adController){
-      alert('Реклама пока недоступна: SDK не загрузился. Попробуй позже или перезайди в игру.');
+    if(!window.ysdk || !window.ysdk.adv){
+      alert('Реклама пока недоступна. Попробуй чуть позже.');
       return;
     }
-    adController.show().then(()=>{
-      currency += AD_REWARD_COINS;
-      saveCurrency();
-      renderColorPicker();
-      renderMetaShop();
-    }).catch((result)=>{
-      // реклама не досмотрена/нет рекламы для показа/ошибка — ничего не начисляем
-      alert('Реклама сейчас недоступна (возможно, площадка ещё на модерации в AdsGram). Попробуй позже.');
+    window.ysdk.adv.showRewardedVideo({
+      callbacks: {
+        onRewarded: () => {
+          currency += AD_REWARD_COINS;
+          saveCurrency();
+          renderColorPicker();
+          renderMetaShop();
+        },
+        onClose: () => {
+          // ролик закрыт — если досмотрен, награда уже начислена в onRewarded выше
+        },
+        onError: () => {
+          alert('Реклама сейчас недоступна. Попробуй позже.');
+        }
+      }
     });
   }
 
-  // Автопоказ рекламы каждые 1000 очков (вызывается из game.js). В отличие от
-  // watchAdForCoins() — без алертов и без награды монетами, просто показ ради
-  // монетизации; callback() всегда вызывается, чтобы игра гарантированно
-  // возобновилась (даже если рекламы не было или показ прервался ошибкой).
+  // Автопоказ рекламы каждые 1000 очков (вызывается из game.js) — обычный
+  // полноэкранный блок Яндекса без награды, показывается в логической паузе
+  // (игра уже стоит на паузе к моменту вызова). callback() вызывается всегда,
+  // чтобы игра гарантированно возобновилась, даже если рекламы не было или
+  // показ прервался ошибкой.
   function showAutoAd(callback){
-    if(!adController){
+    if(!window.ysdk || !window.ysdk.adv){
       if(typeof callback === 'function') callback();
       return;
     }
-    adController.show()
-      .catch(()=>{ /* нет рекламы для показа/ошибка — просто продолжаем игру */ })
-      .then(()=>{
-        if(typeof callback === 'function') callback();
-      });
+    window.ysdk.adv.showFullscreenAdv({
+      callbacks: {
+        onClose: () => { if(typeof callback === 'function') callback(); },
+        onError: () => { if(typeof callback === 'function') callback(); }
+      }
+    });
   }
+
 
   // ---------- stories (persistent, bought with the same currency) ----------
   let unlockedStories = JSON.parse(localStorage.getItem('sr_stories') || '[]');
-  function saveStories(){ localStorage.setItem('sr_stories', JSON.stringify(unlockedStories)); }
+  function saveStories(){ localStorage.setItem('sr_stories', JSON.stringify(unlockedStories)); if(typeof pushCloudSave==='function') pushCloudSave(); }
 
   const STORY_PRICE = 500;
   const STORIES = [
