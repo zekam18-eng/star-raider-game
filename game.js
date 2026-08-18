@@ -44,8 +44,6 @@
   let boss5000Spawned = false;
   let nightMode = false;
   const LOOP_SCORE = 10000;
-  const AD_INTERVAL = 1000;
-  let nextAdScore = AD_INTERVAL;
   let t = 0;
   let shakeTime = 0, shakeMag = 0;
   let spawnTimer = 0;
@@ -428,96 +426,6 @@
     // not running inside VK — ignore
   }
 
-  // ---------- Yandex Games SDK (работает только после публикации через Консоль Яндекс Игр) ----------
-  window.ysdk = null;
-  window.ysdkPlayer = null;
-  // Языки, которые реально поддерживает игра (весь интерфейс только на русском).
-  // Для языков той же группы (be/kk/uk/uz) и вообще любых остальных — запасной вариант тоже русский,
-  // т.к. другого перевода в игре нет (см. п. 2.10 требований платформы).
-  const SUPPORTED_LANGS = ['ru', 'be', 'kk', 'uk', 'uz'];
-  try {
-    if (typeof YaGames !== 'undefined') {
-      YaGames.init().then((sdk) => {
-        window.ysdk = sdk;
-        // Автоопределение языка через SDK (п. 2.14 требований платформы).
-        const detectedLang = sdk.environment && sdk.environment.i18n && sdk.environment.i18n.lang;
-        window.ysdkLang = (detectedLang && SUPPORTED_LANGS.indexOf(detectedLang) !== -1) ? detectedLang : 'ru';
-        // стартовый экран уже виден и интерактивен — можно скрыть лоадер Яндекса
-        sdk.features.LoadingAPI && sdk.features.LoadingAPI.ready();
-        // анонимное облачное сохранение прогресса (п. 1.9 требований платформы) —
-        // scopes:false, чтобы не спрашивать у игрока разрешение на имя/аватар,
-        // нам нужно только хранилище прогресса
-        return sdk.getPlayer({ scopes: false });
-      }).then((player) => {
-        if (!player) return;
-        window.ysdkPlayer = player;
-        return player.getData(['sr']);
-      }).then((data) => {
-        if (data) applyCloudSave(data);
-      }).catch(()=>{});
-    }
-  } catch (e) {
-    // не на платформе Яндекс Игр — просто игнорируем
-  }
-  function ysdkGameplayStart(){
-    try { window.ysdk && window.ysdk.features.GameplayAPI && window.ysdk.features.GameplayAPI.start(); } catch(e){}
-  }
-  function ysdkGameplayStop(){
-    try { window.ysdk && window.ysdk.features.GameplayAPI && window.ysdk.features.GameplayAPI.stop(); } catch(e){}
-  }
-
-  // Пушим весь прогресс в облачный слот игрока Яндекса при каждом локальном сохранении.
-  // На VK/Telegram/обычном браузере window.ysdkPlayer просто нет — вызов тихо ничего не делает.
-  function pushCloudSave(){
-    if (!window.ysdkPlayer) return;
-    try {
-      window.ysdkPlayer.setData({
-        sr: {
-          best: best,
-          currency: currency,
-          unlockedColors: unlockedColors,
-          shipColor: shipColor,
-          hpLevel: hpLevel,
-          stories: unlockedStories
-        }
-      });
-    } catch(e){}
-  }
-
-  // Применяем облачный прогресс поверх локального при первой загрузке (например,
-  // игрок уже играл на другом устройстве) и обновляем UI/localStorage под него.
-  function applyCloudSave(payload){
-    const d = payload && payload.sr;
-    if (!d) return;
-    if (typeof d.best === 'number' && d.best > best) {
-      best = d.best;
-      localStorage.setItem('sr_best', best);
-      bestEl.textContent = 'РЕКОРД: ' + best;
-    }
-    if (typeof d.currency === 'number') {
-      currency = d.currency;
-      localStorage.setItem('sr_currency', currency);
-    }
-    if (Array.isArray(d.unlockedColors)) {
-      unlockedColors = d.unlockedColors;
-      localStorage.setItem('sr_unlocked', JSON.stringify(unlockedColors));
-    }
-    if (typeof d.shipColor === 'string') {
-      shipColor = d.shipColor;
-      localStorage.setItem('sr_shipcolor', shipColor);
-    }
-    if (typeof d.hpLevel === 'number') {
-      hpLevel = d.hpLevel;
-      localStorage.setItem('sr_hplevel', hpLevel);
-    }
-    if (Array.isArray(d.stories)) {
-      unlockedStories = d.stories;
-      localStorage.setItem('sr_stories', JSON.stringify(unlockedStories));
-    }
-    if (typeof renderColorPicker === 'function') renderColorPicker();
-    if (typeof renderMetaShop === 'function') renderMetaShop();
-  }
-
   // ---------- main loop ----------
   let lastTime = performance.now();
   function loop(now){
@@ -575,9 +483,6 @@
 
       if(score >= LOOP_SCORE){
         triggerLoopRestart();
-      } else if(score >= nextAdScore){
-        nextAdScore += AD_INTERVAL;
-        triggerAutoAd();
       } else {
         maybeShowUpgrade();
       }
@@ -605,7 +510,6 @@
       best = finalScore;
       localStorage.setItem('sr_best', best);
       bestEl.textContent = 'РЕКОРД: ' + best;
-      pushCloudSave();
     }
     nightMode = true;
     score = 0;
@@ -616,7 +520,6 @@
     doubleShot = false;
     bulletDamage = 1;
     nextUpgradeScore = UPGRADE_INTERVAL;
-    nextAdScore = AD_INTERVAL;
     boss2000Spawned = false;
     boss5000Spawned = false;
     bossActive = false;
@@ -642,7 +545,6 @@
     boss5000Spawned = false;
     nightMode = false;
     nextUpgradeScore = UPGRADE_INTERVAL;
-    nextAdScore = AD_INTERVAL;
     bullets = []; enemies = []; enemyBullets = []; particles = [];
     spawnTimer = 40;
     resetPlayer();
@@ -655,7 +557,6 @@
     pauseBtn.style.display = 'flex';
     hint.style.display = 'block';
     setTimeout(()=>{ hint.style.display='none'; }, 2600);
-    ysdkGameplayStart();
   }
 
   function endGame(){
@@ -663,14 +564,12 @@
     hud.style.display = 'none';
     pauseBtn.style.display = 'none';
     hint.style.display = 'none';
-    ysdkGameplayStop();
     const finalScore = Math.floor(score);
     if(finalScore > best){
       best = finalScore;
       localStorage.setItem('sr_best', best);
     }
     bestEl.textContent = 'РЕКОРД: ' + best;
-    pushCloudSave();
 
     overlay.innerHTML = `
       <div class="finalLabel">Миссия окончена</div>
@@ -687,35 +586,16 @@
     document.getElementById('playBtn').addEventListener('click', startGame);
   }
 
-  function triggerAutoAd(){
-    if(state !== 'playing') return;
-    state = 'paused'; // переиспользуем заморозку цикла — своё окно паузы не показываем
-    ysdkGameplayStop();
-    if(typeof showAutoAd === 'function'){
-      showAutoAd(()=>{
-        if(state === 'paused'){
-          state = 'playing';
-          ysdkGameplayStart();
-        }
-      });
-    } else {
-      state = 'playing';
-      ysdkGameplayStart();
-    }
-  }
-
   function pauseGame(){
     if(state !== 'playing') return;
     state = 'paused';
     pauseOverlay.style.display = 'flex';
-    ysdkGameplayStop();
   }
 
   function resumeGame(){
     if(state !== 'paused') return;
     state = 'playing';
     pauseOverlay.style.display = 'none';
-    ysdkGameplayStart();
   }
 
   function exitToMenu(){
@@ -725,7 +605,6 @@
       localStorage.setItem('sr_best', best);
     }
     bestEl.textContent = 'РЕКОРД: ' + best;
-    pushCloudSave();
 
     state = 'menu';
     pauseOverlay.style.display = 'none';
@@ -733,10 +612,9 @@
     pauseBtn.style.display = 'none';
     hint.style.display = 'none';
     bullets = []; enemies = []; enemyBullets = []; particles = [];
-    ysdkGameplayStop();
 
     overlay.innerHTML = `
-      <h1>DRIFTFALL</h1>
+      <h1>STAR RAIDER</h1>
       <div class="sub">Уклоняйся, стреляй по роботам-дронам и набирай очки.<br>Одно столкновение — и миссия окончена.</div>
       <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
       <div id="colorPicker"></div>

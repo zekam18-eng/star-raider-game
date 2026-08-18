@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Driftfall</title>
+<title>Star Raider</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -358,12 +358,12 @@
   }
 </style>
 
-<!-- Yandex Games SDK. Относительный путь работает только после того, как игра
-     загружена zip-архивом через Консоль Яндекс Игр (games.yandex.ru/console) —
-     на GitHub Pages/VK/Telegram этот тег просто не найдёт файл и безопасно промолчит. -->
-<script src="/sdk.js"></script>
+<!-- AdsGram SDK (реклама с вознаграждением для Telegram Mini App).
+     Скрипт универсальный, ничего в нём менять не нужно —
+     твой личный blockId прописан в upgrades.js. -->
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 </head>
-<body oncontextmenu="return false;">
+<body>
 
 <!-- VK Mini Apps: обязательный сигнал платформе, что страница загрузилась.
      Без этого VK бесконечно показывает свой собственный лоадер поверх приложения. -->
@@ -440,7 +440,7 @@
 </div>
 
 <div id="overlay">
-  <h1>DRIFTFALL</h1>
+  <h1>STAR RAIDER</h1>
   <div class="sub">Уклоняйся, стреляй по роботам-дронам и набирай очки.<br>Одно столкновение — и миссия окончена.</div>
   <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
   <div id="colorPicker"></div>
@@ -461,9 +461,9 @@
 <!-- Игровые модули: порядок важен (background/upgrades/enemies не обёрнуты в функцию,
      поэтому их let/const видны следующим скриптам; game.js подключается последним
      и запускает главный цикл) -->
-<script src="background.js?v=10"></script>
-<script src="upgrades.js?v=14"></script>
-<script src="enemies.js?v=13"></script>
-<script src="game.js?v=15"></script>
+<script src="background.js?v=6"></script>
+<script src="upgrades.js?v=8"></script>
+<script src="enemies.js?v=6"></script>
+<script src="game.js?v=6"></script>
 </body>
 </html>
