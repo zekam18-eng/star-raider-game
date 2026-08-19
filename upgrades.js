@@ -19,7 +19,8 @@
     orange:{ name: 'Оранжевый', price: 240, light:'#ffe8cc', mid:'#ff9c33', dark:'#7a3d0a', wing:'#4dd8ff', glow:'#ffb15e' },
     purple:{ name: 'Фиолетовый', price: 300, light:'#f0e0ff', mid:'#a35bff', dark:'#3d1470', wing:'#ffd76a', glow:'#c58aff' },
     pink:  { name: 'Розовый', price: 360, light:'#ffe3f2', mid:'#ff6fc0', dark:'#8a1257', wing:'#fff2a8', glow:'#ff9bd6', symbol:'heart' },
-    russia:{ name: 'Триколор', price: 420, light:'#ffffff', mid:'#2b5fd9', dark:'#d61f2c', wing:'#ffd76a', glow:'#8fb3ff', flag:true }
+    russia:{ name: 'Триколор', price: 420, light:'#ffffff', mid:'#2b5fd9', dark:'#d61f2c', wing:'#ffd76a', glow:'#8fb3ff', flag:true },
+    imperial:{ name: 'Имперский флаг', price: 480, light:'#111111', mid:'#f4c430', dark:'#f2f2f2', wing:'#f4c430', glow:'#f4c430', flag:true }
   };
 
   function saveCurrency(){ localStorage.setItem('sr_currency', currency); }
@@ -82,6 +83,27 @@
     }
   } catch (e) {
     // SDK недоступен (например, тестируем не внутри Telegram) — просто игнорируем
+  }
+
+  // ---------- interstitial ad every 1000 score points (not rewarded, just shown) ----------
+  const SCORE_AD_INTERVAL = 1000;
+  let nextScoreAd = SCORE_AD_INTERVAL;
+
+  function resetScoreAdMilestone(){
+    nextScoreAd = SCORE_AD_INTERVAL;
+  }
+
+  function maybeShowMilestoneAd(currentScore){
+    if(currentScore < nextScoreAd) return;
+    nextScoreAd += SCORE_AD_INTERVAL;
+    if(!adController) return;
+    try {
+      adController.show().catch(()=>{
+        // нет рекламы для показа / не досмотрена — просто идём дальше, без штрафов игроку
+      });
+    } catch(e) {
+      // SDK недоступен — тихо игнорируем
+    }
   }
 
   function watchAdForCoins(){

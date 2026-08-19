@@ -485,6 +485,7 @@
         triggerLoopRestart();
       } else {
         maybeShowUpgrade();
+        maybeShowMilestoneAd(score);
       }
     } else {
       updateParticles(dt);
@@ -520,6 +521,7 @@
     doubleShot = false;
     bulletDamage = 1;
     nextUpgradeScore = UPGRADE_INTERVAL;
+    resetScoreAdMilestone();
     boss2000Spawned = false;
     boss5000Spawned = false;
     bossActive = false;
@@ -545,6 +547,7 @@
     boss5000Spawned = false;
     nightMode = false;
     nextUpgradeScore = UPGRADE_INTERVAL;
+    resetScoreAdMilestone();
     bullets = []; enemies = []; enemyBullets = []; particles = [];
     spawnTimer = 40;
     resetPlayer();
