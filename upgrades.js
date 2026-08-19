@@ -68,10 +68,10 @@
   // ---------- rewarded ad (AdsGram SDK, Telegram Mini App) ----------
   const AD_REWARD_COINS = 50;
   const ADSGRAM_BLOCK_ID = "42733";
-  // ВРЕМЕННО true — показывает тестовый баннер AdsGram независимо от модерации,
-  // чтобы проверить саму интеграцию. Когда площадка пройдёт модерацию и пойдёт
-  // реальная реклама — поставь обратно false и убери debugBannerType.
-  const ADSGRAM_DEBUG = true;
+  // Модерация пройдена — показываем реальную рекламу (реальные показы = реальные деньги).
+  // Если площадку когда-нибудь снова отправят на модерацию или нужно быстро проверить
+  // саму интеграцию без ожидания реального заполнения — верни true и debugBannerType обратно.
+  const ADSGRAM_DEBUG = false;
   let adController = null;
   try {
     if (window.Adsgram) {
