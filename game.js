@@ -536,6 +536,7 @@
   }
 
   function startGame(){
+    showStartAd();
     score = 0;
     maxHP = BASE_MAX_HP + hpLevel;
     hp = maxHP;

@@ -106,6 +106,18 @@
     }
   }
 
+  // ---------- interstitial ad on game load/(re)start ----------
+  function showStartAd(){
+    if(!adController) return;
+    try {
+      adController.show().catch(()=>{
+        // рекламы нет (например, модерация ещё не пройдена) — просто пропускаем, без блокировки игры
+      });
+    } catch(e) {
+      // SDK недоступен — тихо игнорируем
+    }
+  }
+
   function watchAdForCoins(){
     if(!adController){
       alert('Реклама пока недоступна: SDK не загрузился. Попробуй позже или перезайди в игру.');
