@@ -13,14 +13,14 @@
 
   const SHIP_COLORS = {
     blue:  { name: 'Синий',   price: 0,   light:'#eafcff', mid:'#7fd9ff', dark:'#1a6fbf', wing:'#ff5fae', glow:'#4dd8ff' },
-    red:   { name: 'Красный', price: 60,  light:'#ffe3e3', mid:'#ff5f5f', dark:'#7a1414', wing:'#ffd76a', glow:'#ff6a4d' },
-    black: { name: 'Чёрный',  price: 120, light:'#c7ccd1', mid:'#4a4f57', dark:'#08090b', wing:'#4dd8ff', glow:'#8fa0b3' },
-    green: { name: 'Зелёный', price: 180, light:'#e6ffe0', mid:'#4fd85c', dark:'#0f5c1a', wing:'#ffd76a', glow:'#7dffb0' },
-    orange:{ name: 'Оранжевый', price: 240, light:'#ffe8cc', mid:'#ff9c33', dark:'#7a3d0a', wing:'#4dd8ff', glow:'#ffb15e' },
-    purple:{ name: 'Фиолетовый', price: 300, light:'#f0e0ff', mid:'#a35bff', dark:'#3d1470', wing:'#ffd76a', glow:'#c58aff' },
-    pink:  { name: 'Розовый', price: 360, light:'#ffe3f2', mid:'#ff6fc0', dark:'#8a1257', wing:'#fff2a8', glow:'#ff9bd6', symbol:'heart' },
-    russia:{ name: 'Триколор', price: 420, light:'#ffffff', mid:'#2b5fd9', dark:'#d61f2c', wing:'#ffd76a', glow:'#8fb3ff', flag:true },
-    imperial:{ name: 'Имперский флаг', price: 480, light:'#111111', mid:'#f4c430', dark:'#f2f2f2', wing:'#f4c430', glow:'#f4c430', flag:true }
+    red:   { name: 'Красный', price: 110,  light:'#ffe3e3', mid:'#ff5f5f', dark:'#7a1414', wing:'#ffd76a', glow:'#ff6a4d' },
+    black: { name: 'Чёрный',  price: 170, light:'#c7ccd1', mid:'#4a4f57', dark:'#08090b', wing:'#4dd8ff', glow:'#8fa0b3' },
+    green: { name: 'Зелёный', price: 230, light:'#e6ffe0', mid:'#4fd85c', dark:'#0f5c1a', wing:'#ffd76a', glow:'#7dffb0' },
+    orange:{ name: 'Оранжевый', price: 290, light:'#ffe8cc', mid:'#ff9c33', dark:'#7a3d0a', wing:'#4dd8ff', glow:'#ffb15e' },
+    purple:{ name: 'Фиолетовый', price: 350, light:'#f0e0ff', mid:'#a35bff', dark:'#3d1470', wing:'#ffd76a', glow:'#c58aff' },
+    pink:  { name: 'Розовый', price: 410, light:'#ffe3f2', mid:'#ff6fc0', dark:'#8a1257', wing:'#fff2a8', glow:'#ff9bd6', symbol:'heart' },
+    russia:{ name: 'Триколор', price: 470, light:'#ffffff', mid:'#2b5fd9', dark:'#d61f2c', wing:'#ffd76a', glow:'#8fb3ff', flag:true },
+    imperial:{ name: 'Имперский флаг', price: 530, light:'#111111', mid:'#f4c430', dark:'#f2f2f2', wing:'#f4c430', glow:'#f4c430', flag:true }
   };
 
   function saveCurrency(){ localStorage.setItem('sr_currency', currency); }
@@ -158,8 +158,8 @@
     }
   }
 
-  // ---------- interstitial ad every 1000 score points (not rewarded, just shown) ----------
-  const SCORE_AD_INTERVAL = 1000;
+  // ---------- interstitial ad every 2000 score points (not rewarded, just shown) ----------
+  const SCORE_AD_INTERVAL = 2000;
   let nextScoreAd = SCORE_AD_INTERVAL;
 
   function resetScoreAdMilestone(){
@@ -172,9 +172,9 @@
     showInterstitialAd();
   }
 
-  // ---------- interstitial ad on game load/(re)start ----------
   function showStartAd(){
-    showInterstitialAd();
+    // реклама на старте отключена по просьбе — функция оставлена как заглушка,
+    // если понадобится вернуть показ рекламы при запуске игры.
   }
 
   function watchAdForCoins(){
