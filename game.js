@@ -575,6 +575,7 @@
     bestEl.textContent = 'РЕКОРД: ' + best;
 
     overlay.innerHTML = `
+      <div class="dustLayer" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
       <div class="finalLabel">Миссия окончена</div>
       <div class="finalScore">${finalScore}</div>
       <div class="bestLine">★ Рекорд: ${best}</div>
@@ -619,6 +620,7 @@
     bullets = []; enemies = []; enemyBullets = []; particles = [];
 
     overlay.innerHTML = `
+      <div class="dustLayer" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
       <h1>STAR RAIDER</h1>
       <div class="sub">Уклоняйся, стреляй по роботам-дронам и набирай очки.<br>Одно столкновение — и миссия окончена.</div>
       <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
