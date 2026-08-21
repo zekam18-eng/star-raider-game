@@ -583,6 +583,8 @@
       <div id="colorPicker"></div>
       <div id="metaShop"></div>
       <button id="playBtn">ЕЩЁ РАЗ</button>
+      <br>
+      <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink">Наше сообщество ВКонтакте →</a>
     `;
     overlay.style.display = 'flex';
     renderColorPicker();
@@ -624,6 +626,8 @@
       <div id="colorPicker"></div>
       <div id="metaShop"></div>
       <button id="playBtn">ИГРАТЬ</button>
+      <br>
+      <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink">Наше сообщество ВКонтакте →</a>
     `;
     overlay.style.display = 'flex';
     renderColorPicker();

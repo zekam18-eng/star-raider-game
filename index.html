@@ -300,6 +300,18 @@
   }
   #playBtn:active { transform: scale(0.94); }
 
+  .vkCommunityLink {
+    display: inline-block;
+    margin-top: 16px;
+    color: #7fd9ff;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(127,217,255,0.5);
+    pointer-events: all;
+  }
+  .vkCommunityLink:active { opacity: 0.7; }
+
   #currencyLine {
     color: #ffd76a;
     font-size: 14px;
@@ -446,6 +458,8 @@
   <div id="colorPicker"></div>
   <div id="metaShop"></div>
   <button id="playBtn">ИГРАТЬ</button>
+  <br>
+  <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink" id="vkCommunityLink1">Наше сообщество ВКонтакте →</a>
 </div>
 
 <div id="storiesOverlay">
@@ -462,8 +476,8 @@
      поэтому их let/const видны следующим скриптам; game.js подключается последним
      и запускает главный цикл) -->
 <script src="background.js?v=6"></script>
-<script src="upgrades.js?v=11"></script>
+<script src="upgrades.js?v=12"></script>
 <script src="enemies.js?v=6"></script>
-<script src="game.js?v=8"></script>
+<script src="game.js?v=9"></script>
 </body>
 </html>

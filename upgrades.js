@@ -65,6 +65,19 @@
     });
   }
 
+  // ---------- platform detection (Telegram vs VK vs plain web) ----------
+  function detectPlatform(){
+    try {
+      const params = new URLSearchParams(location.search);
+      if (params.get('vk_app_id')) return 'vk';
+    } catch(e) {}
+    try {
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) return 'telegram';
+    } catch(e) {}
+    return 'web';
+  }
+  const PLATFORM = detectPlatform();
+
   // ---------- rewarded ad (AdsGram SDK, Telegram Mini App) ----------
   const AD_REWARD_COINS = 50;
   const ADSGRAM_BLOCK_ID = "42733";
@@ -85,6 +98,66 @@
     // SDK недоступен (например, тестируем не внутри Telegram) — просто игнорируем
   }
 
+  // ---------- ads for VK Mini Apps (нативные рекламные форматы через vkBridge) ----------
+  function vkShowInterstitial(){
+    if(!window.vkBridge) return;
+    try {
+      vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' })
+        .then((data)=>{
+          if(data && data.result){
+            return vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
+          }
+        })
+        .catch(()=>{
+          // рекламы нет / модерация ещё не пройдена / ошибка — просто пропускаем
+        });
+    } catch(e) {
+      // SDK недоступен — тихо игнорируем
+    }
+  }
+
+  function vkShowRewarded(onSuccess, onFail){
+    if(!window.vkBridge){
+      if(onFail) onFail();
+      return;
+    }
+    try {
+      vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' })
+        .then((data)=>{
+          if(data && data.result){
+            return vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
+          }
+          throw new Error('no ad available');
+        })
+        .then((res)=>{
+          if(res && res.result){
+            if(onSuccess) onSuccess();
+          } else if(onFail) onFail();
+        })
+        .catch(()=>{
+          if(onFail) onFail();
+        });
+    } catch(e) {
+      if(onFail) onFail();
+    }
+  }
+
+  // ---------- единая точка показа interstitial-рекламы, роутит по площадке ----------
+  function showInterstitialAd(){
+    if(PLATFORM === 'vk'){
+      vkShowInterstitial();
+      return;
+    }
+    if(!adController) return;
+    try {
+      adController.show().catch(()=>{
+        // нет рекламы для показа / не досмотрена — просто идём дальше, без штрафов игроку
+      });
+    } catch(e) {
+      // SDK недоступен — тихо игнорируем
+    }
+  }
+
   // ---------- interstitial ad every 1000 score points (not rewarded, just shown) ----------
   const SCORE_AD_INTERVAL = 1000;
   let nextScoreAd = SCORE_AD_INTERVAL;
@@ -96,29 +169,29 @@
   function maybeShowMilestoneAd(currentScore){
     if(currentScore < nextScoreAd) return;
     nextScoreAd += SCORE_AD_INTERVAL;
-    if(!adController) return;
-    try {
-      adController.show().catch(()=>{
-        // нет рекламы для показа / не досмотрена — просто идём дальше, без штрафов игроку
-      });
-    } catch(e) {
-      // SDK недоступен — тихо игнорируем
-    }
+    showInterstitialAd();
   }
 
   // ---------- interstitial ad on game load/(re)start ----------
   function showStartAd(){
-    if(!adController) return;
-    try {
-      adController.show().catch(()=>{
-        // рекламы нет (например, модерация ещё не пройдена) — просто пропускаем, без блокировки игры
-      });
-    } catch(e) {
-      // SDK недоступен — тихо игнорируем
-    }
+    showInterstitialAd();
   }
 
   function watchAdForCoins(){
+    if(PLATFORM === 'vk'){
+      vkShowRewarded(
+        ()=>{
+          currency += AD_REWARD_COINS;
+          saveCurrency();
+          renderColorPicker();
+          renderMetaShop();
+        },
+        ()=>{
+          alert('Реклама сейчас недоступна во ВКонтакте (возможно, приложение ещё не одобрено для показа рекламы). Попробуй позже.');
+        }
+      );
+      return;
+    }
     if(!adController){
       alert('Реклама пока недоступна: SDK не загрузился. Попробуй позже или перезайди в игру.');
       return;
