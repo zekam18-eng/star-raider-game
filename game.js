@@ -111,16 +111,101 @@
   let enemies = [];
   let enemyBullets = [];
   let particles = [];
+  let powerups = [];
   let stars2 = []; // pickup sparkles unused placeholder
 
+  // ---------- временные бусты (дроп с врагов) ----------
+  const POWERUP_TYPES = {
+    rapid:  { name: 'Скорострельность', color: '#4be9ff' },
+    damage: { name: 'Перегрузка орудий', color: '#ff5f5f' },
+    score:  { name: 'x2 очки', color: '#ffd76a' }
+  };
+  const POWERUP_DROP_CHANCE = 0.12;
+  const POWERUP_DURATION = 480; // ~8 сек при 60fps (dt-юниты)
+  let activeBuff = null; // { type, time }
+  const buffIndicatorEl = document.getElementById('buffIndicator');
+
+  function buffMultiplier(kind){
+    return (activeBuff && activeBuff.type === kind) ? (kind==='damage' ? 1.6 : 2) : 1;
+  }
+
+  function maybeDropPowerup(x, y){
+    if(Math.random() < POWERUP_DROP_CHANCE){
+      const keys = Object.keys(POWERUP_TYPES);
+      const kind = keys[Math.floor(Math.random()*keys.length)];
+      powerups.push({ x, y, r: 15, kind, phase: Math.random()*Math.PI*2 });
+    }
+  }
+
+  function applyPowerup(kind){
+    activeBuff = { type: kind, time: POWERUP_DURATION };
+    const c = POWERUP_TYPES[kind].color;
+    spawnParticles(player.x, player.y, 18, c, 4, 0.8);
+    renderBuffIndicator();
+  }
+
+  function updatePowerups(dt){
+    for(let i=powerups.length-1;i>=0;i--){
+      const p = powerups[i];
+      p.x -= 2.2 * dt;
+      p.y += Math.sin(t*0.05 + p.phase) * 0.6 * dt;
+      if(p.x + p.r < 0){
+        powerups.splice(i,1);
+        continue;
+      }
+      const dx = player.x - p.x, dy = player.y - p.y;
+      const rad = player.r*0.75 + p.r;
+      if(dx*dx+dy*dy < rad*rad){
+        applyPowerup(p.kind);
+        powerups.splice(i,1);
+      }
+    }
+  }
+
+  function drawPowerups(){
+    for(const p of powerups){
+      const c = POWERUP_TYPES[p.kind].color;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(t*0.02);
+      ctx.beginPath();
+      for(let k=0;k<6;k++){
+        const ang = (Math.PI/3)*k;
+        const px = Math.cos(ang)*p.r, py = Math.sin(ang)*p.r;
+        if(k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = c;
+      ctx.globalAlpha = 0.85;
+      ctx.shadowColor = c;
+      ctx.shadowBlur = 18;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function renderBuffIndicator(){
+    if(!buffIndicatorEl) return;
+    if(activeBuff){
+      const info = POWERUP_TYPES[activeBuff.type];
+      const secs = Math.max(0, Math.ceil(activeBuff.time/60));
+      buffIndicatorEl.style.display = 'flex';
+      buffIndicatorEl.innerHTML = `<span class="buffDot" style="background:${info.color};box-shadow:0 0 8px ${info.color}"></span>${info.name} · ${secs}с`;
+    } else {
+      buffIndicatorEl.style.display = 'none';
+      buffIndicatorEl.innerHTML = '';
+    }
+  }
+
   function shoot(){
+    const dmg = bulletDamage * buffMultiplier('damage');
     if(doubleShot){
-      bullets.push({ x: player.x + player.r, y: player.y - 10, vx: 11, r: 4, dmg: bulletDamage });
-      bullets.push({ x: player.x + player.r, y: player.y + 10, vx: 11, r: 4, dmg: bulletDamage });
+      bullets.push({ x: player.x + player.r, y: player.y - 10, vx: 11, r: 4, dmg });
+      bullets.push({ x: player.x + player.r, y: player.y + 10, vx: 11, r: 4, dmg });
       spawnParticles(player.x + player.r, player.y - 10, 2, '#8fe7ff', 1.5, 0.6);
       spawnParticles(player.x + player.r, player.y + 10, 2, '#8fe7ff', 1.5, 0.6);
     } else {
-      bullets.push({ x: player.x + player.r, y: player.y, vx: 11, r: 4, dmg: bulletDamage });
+      bullets.push({ x: player.x + player.r, y: player.y, vx: 11, r: 4, dmg });
       spawnParticles(player.x + player.r, player.y, 2, '#8fe7ff', 1.5, 0.6);
     }
   }
@@ -454,7 +539,7 @@
       updatePlayer(dt);
 
       shootTimer -= dt;
-      if(shootTimer<=0){ shoot(); shootTimer = 8; }
+      if(shootTimer<=0){ shoot(); shootTimer = 8 * (buffMultiplier('rapid')>1 ? 0.5 : 1); }
 
       if(!bossActive){
         if(!boss2000Spawned && score >= 2000){
@@ -477,8 +562,17 @@
       updateEnemies(dt);
       updateEnemyBullets(dt);
       updateParticles(dt);
+      updatePowerups(dt);
 
-      score += 0.12 * dt;
+      if(activeBuff){
+        activeBuff.time -= dt;
+        if(activeBuff.time <= 0){
+          activeBuff = null;
+        }
+        renderBuffIndicator();
+      }
+
+      score += 0.12 * dt * buffMultiplier('score');
       scoreEl.textContent = Math.floor(score);
 
       if(score >= LOOP_SCORE){
@@ -492,6 +586,7 @@
     }
 
     drawParticles();
+    drawPowerups();
     for(const e of enemies){
       if(e.bossKind === 'ship') drawEnemyShip(e);
       else drawEnemy(e);
@@ -525,7 +620,7 @@
     boss2000Spawned = false;
     boss5000Spawned = false;
     bossActive = false;
-    bullets = []; enemies = []; enemyBullets = []; particles = [];
+    bullets = []; enemies = []; enemyBullets = []; particles = []; powerups = []; activeBuff = null; renderBuffIndicator();
     spawnTimer = 40;
     resetPlayer();
     renderHP();
@@ -548,7 +643,7 @@
     nightMode = false;
     nextUpgradeScore = UPGRADE_INTERVAL;
     resetScoreAdMilestone();
-    bullets = []; enemies = []; enemyBullets = []; particles = [];
+    bullets = []; enemies = []; enemyBullets = []; particles = []; powerups = []; activeBuff = null; renderBuffIndicator();
     spawnTimer = 40;
     resetPlayer();
     renderHP();
@@ -576,6 +671,23 @@
 
     overlay.innerHTML = `
       <div class="dustLayer" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="cockpitLayer" aria-hidden="true">
+        <div class="cockpitTop">
+          <span><span class="statusDot"></span>СЕКТОР 7-G <span class="sep">·</span> КВАДРАНТ VII</span>
+          <span>СТАТУС: МИССИЯ ЗАВЕРШЕНА</span>
+        </div>
+        <div class="cockpitLeft">
+          <div class="cockpitLabel">ЦЕЛЬ МИССИИ</div>
+          <div class="objRow"><span class="ring"></span>Уничтожай роботов-дронов</div>
+          <div class="objRow"><span class="ring"></span>Собирай очки и монеты</div>
+          <div class="objRow"><span class="ring"></span>Избегай столкновений</div>
+        </div>
+        <div class="cockpitRight">
+          <div class="cockpitLabel">РЕАКТОР</div>
+          <div class="reactorBars"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="reactorVal">ОЖИДАНИЕ</div>
+        </div>
+      </div>
       <div class="finalLabel">Миссия окончена</div>
       <div class="finalScore">${finalScore}</div>
       <div class="bestLine">★ Рекорд: ${best}</div>
@@ -617,10 +729,27 @@
     hud.style.display = 'none';
     pauseBtn.style.display = 'none';
     hint.style.display = 'none';
-    bullets = []; enemies = []; enemyBullets = []; particles = [];
+    bullets = []; enemies = []; enemyBullets = []; particles = []; powerups = []; activeBuff = null; renderBuffIndicator();
 
     overlay.innerHTML = `
       <div class="dustLayer" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="cockpitLayer" aria-hidden="true">
+        <div class="cockpitTop">
+          <span><span class="statusDot"></span>СЕКТОР 7-G <span class="sep">·</span> КВАДРАНТ VII</span>
+          <span>СТАТУС: ГОТОВ К ВЫЛЕТУ</span>
+        </div>
+        <div class="cockpitLeft">
+          <div class="cockpitLabel">ЦЕЛЬ МИССИИ</div>
+          <div class="objRow"><span class="ring"></span>Уничтожай роботов-дронов</div>
+          <div class="objRow"><span class="ring"></span>Собирай очки и монеты</div>
+          <div class="objRow"><span class="ring"></span>Избегай столкновений</div>
+        </div>
+        <div class="cockpitRight">
+          <div class="cockpitLabel">РЕАКТОР</div>
+          <div class="reactorBars"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="reactorVal">100% СТАБИЛЕН</div>
+        </div>
+      </div>
       <h1>STAR RAIDER</h1>
       <div class="sub">Уклоняйся, стреляй по роботам-дронам и набирай очки.<br>Одно столкновение — и миссия окончена.</div>
       <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
