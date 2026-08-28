@@ -20,7 +20,12 @@
     purple:{ name: 'Фиолетовый', price: 350, light:'#f0e0ff', mid:'#a35bff', dark:'#3d1470', wing:'#ffd76a', glow:'#c58aff' },
     pink:  { name: 'Розовый', price: 410, light:'#ffe3f2', mid:'#ff6fc0', dark:'#8a1257', wing:'#fff2a8', glow:'#ff9bd6', symbol:'heart' },
     russia:{ name: 'Триколор', price: 470, light:'#ffffff', mid:'#2b5fd9', dark:'#d61f2c', wing:'#ffd76a', glow:'#8fb3ff', flag:true },
-    imperial:{ name: 'Имперский флаг', price: 530, light:'#111111', mid:'#f4c430', dark:'#f2f2f2', wing:'#f4c430', glow:'#f4c430', flag:true }
+    imperial:{ name: 'Имперский флаг', price: 530, light:'#111111', mid:'#f4c430', dark:'#f2f2f2', wing:'#f4c430', glow:'#f4c430', flag:true },
+    sand:  { name: 'Песчаный', price: 590, light:'#fff2c2', mid:'#e8c33c', dark:'#7a5c0a', wing:'#4dd8ff', glow:'#ffdb70' },
+    amethyst:{ name: 'Аметист', price: 650, light:'#e8d9ff', mid:'#8a5cf5', dark:'#3d1f7a', wing:'#fff2a8', glow:'#b98cff' },
+    arctic:{ name: 'Арктика', price: 710, light:'#f5fbfc', mid:'#bcd9da', dark:'#1a5c5c', wing:'#2fd9c4', glow:'#8ff5e0' },
+    ocean: { name: 'Океан', price: 770, light:'#cfe8ff', mid:'#2f7fd9', dark:'#0a2a52', wing:'#ffd76a', glow:'#6fb3ff' },
+    toxic: { name: 'Токсик', price: 830, light:'#d9c2ff', mid:'#6a3fb0', dark:'#241247', wing:'#7dff4d', glow:'#b98cff' }
   };
 
   function saveCurrency(){ localStorage.setItem('sr_currency', currency); }

@@ -107,6 +107,7 @@
   }
 
   // ---------- entities ----------
+  let currentMode = 'earth'; // 'earth' | 'space' — фиксируется при старте игры из gameMode
   let bullets = [];
   let enemies = [];
   let enemyBullets = [];
@@ -262,114 +263,132 @@
 
   function drawShip(){
     const p = player;
-    const colScheme = SHIP_COLORS[shipColor] || SHIP_COLORS.blue;
     const blinking = p.invuln > 0 && Math.floor(p.invuln/4)%2===0;
-    if(blinking) ctx.globalAlpha = 0.4;
+    drawShipOn(ctx, p.x, p.y, p.r, p.tilt, shipColor, blinking, true);
+  }
 
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(Math.PI/2 + p.tilt);
+  function drawShipOn(targetCtx, cx, cy, r, tilt, colorKey, blinking, withFlame){
+    const colScheme = SHIP_COLORS[colorKey] || SHIP_COLORS.blue;
+    if(blinking) targetCtx.globalAlpha = 0.4;
 
-    // thruster flame
-    const flameLen = 14 + Math.sin(t*0.6)*4 + player.thrusterPulse;
-    const fg = ctx.createLinearGradient(0, p.r*0.6, 0, p.r*0.6+flameLen);
-    fg.addColorStop(0, 'rgba(120,220,255,0.95)');
-    fg.addColorStop(0.5, 'rgba(80,160,255,0.6)');
-    fg.addColorStop(1, 'rgba(80,160,255,0)');
-    ctx.fillStyle = fg;
-    ctx.beginPath();
-    ctx.moveTo(-6, p.r*0.55);
-    ctx.lineTo(0, p.r*0.55+flameLen);
-    ctx.lineTo(6, p.r*0.55);
-    ctx.closePath();
-    ctx.fill();
+    targetCtx.save();
+    targetCtx.translate(cx, cy);
+    targetCtx.rotate(Math.PI/2 + tilt);
+
+    if(withFlame){
+      // thruster flame
+      const flameLen = 14 + Math.sin(t*0.6)*4 + player.thrusterPulse;
+      const fg = targetCtx.createLinearGradient(0, r*0.82, 0, r*0.82+flameLen);
+      fg.addColorStop(0, 'rgba(120,220,255,0.95)');
+      fg.addColorStop(0.5, 'rgba(80,160,255,0.6)');
+      fg.addColorStop(1, 'rgba(80,160,255,0)');
+      targetCtx.fillStyle = fg;
+      targetCtx.beginPath();
+      targetCtx.moveTo(-6, r*0.78);
+      targetCtx.lineTo(0, r*0.78+flameLen);
+      targetCtx.lineTo(6, r*0.78);
+      targetCtx.closePath();
+      targetCtx.fill();
+    }
 
     // glow
-    ctx.shadowColor = colScheme.glow;
-    ctx.shadowBlur = 22;
+    targetCtx.shadowColor = colScheme.glow;
+    targetCtx.shadowBlur = 22;
 
-    // body
-    ctx.beginPath();
-    ctx.moveTo(0, -p.r*1.15);
-    ctx.quadraticCurveTo(p.r*0.9, p.r*0.2, p.r*0.75, p.r*0.75);
-    ctx.lineTo(p.r*0.25, p.r*0.5);
-    ctx.lineTo(-p.r*0.25, p.r*0.5);
-    ctx.lineTo(-p.r*0.75, p.r*0.75);
-    ctx.quadraticCurveTo(-p.r*0.9, p.r*0.2, 0, -p.r*1.15);
-    ctx.closePath();
+    // body — округлый вытянутый корпус (капсула), как у референсного корабля
+    const noseY = -r*1.2, rearY = r*0.82;
+    targetCtx.beginPath();
+    targetCtx.moveTo(0, noseY);
+    targetCtx.bezierCurveTo(r*0.58, -r*1.02, r*0.92, -r*0.38, r*0.8, r*0.12);
+    targetCtx.bezierCurveTo(r*0.75, r*0.42, r*0.6, r*0.62, r*0.48, rearY);
+    targetCtx.lineTo(-r*0.48, rearY);
+    targetCtx.bezierCurveTo(-r*0.6, r*0.62, -r*0.75, r*0.42, -r*0.8, r*0.12);
+    targetCtx.bezierCurveTo(-r*0.92, -r*0.38, -r*0.58, -r*1.02, 0, noseY);
+    targetCtx.closePath();
 
     if(colScheme.flag){
       // outer glow silhouette first (shadow gets clipped away once we clip below)
-      ctx.fillStyle = colScheme.mid;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.save();
-      ctx.clip();
-      const topY = -p.r*1.15, botY = p.r*0.9;
+      targetCtx.fillStyle = colScheme.mid;
+      targetCtx.fill();
+      targetCtx.shadowBlur = 0;
+      targetCtx.save();
+      targetCtx.clip();
+      const topY = noseY, botY = rearY;
       const bandH = (botY - topY) / 3;
-      ctx.fillStyle = colScheme.light;
-      ctx.fillRect(-p.r, topY, p.r*2, bandH);
-      ctx.fillStyle = colScheme.mid;
-      ctx.fillRect(-p.r, topY+bandH, p.r*2, bandH);
-      ctx.fillStyle = colScheme.dark;
-      ctx.fillRect(-p.r, topY+bandH*2, p.r*2, bandH+2);
-      ctx.restore();
+      targetCtx.fillStyle = colScheme.light;
+      targetCtx.fillRect(-r, topY, r*2, bandH);
+      targetCtx.fillStyle = colScheme.mid;
+      targetCtx.fillRect(-r, topY+bandH, r*2, bandH);
+      targetCtx.fillStyle = colScheme.dark;
+      targetCtx.fillRect(-r, topY+bandH*2, r*2, bandH+2);
+      targetCtx.restore();
     } else {
-      const bodyGrad = ctx.createLinearGradient(0,-p.r,0,p.r);
+      const bodyGrad = targetCtx.createLinearGradient(0,noseY,0,rearY);
       bodyGrad.addColorStop(0, colScheme.light);
       bodyGrad.addColorStop(0.5, colScheme.mid);
       bodyGrad.addColorStop(1, colScheme.dark);
-      ctx.fillStyle = bodyGrad;
-      ctx.fill();
+      targetCtx.fillStyle = bodyGrad;
+      targetCtx.fill();
     }
 
-    ctx.shadowBlur = 0;
-    // cockpit
-    ctx.fillStyle = '#062a3f';
-    ctx.beginPath();
-    ctx.ellipse(0, -p.r*0.15, p.r*0.28, p.r*0.4, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(180,240,255,0.85)';
-    ctx.beginPath();
-    ctx.ellipse(-p.r*0.08, -p.r*0.28, p.r*0.1, p.r*0.16, -0.4, 0, Math.PI*2);
-    ctx.fill();
+    // тонкая обводка корпуса для чёткости силуэта
+    targetCtx.shadowBlur = 0;
+    targetCtx.lineWidth = Math.max(1, r*0.03);
+    targetCtx.strokeStyle = 'rgba(0,0,0,0.35)';
+    targetCtx.stroke();
 
-    // wing accents
-    ctx.fillStyle = colScheme.wing;
-    ctx.beginPath();
-    ctx.moveTo(p.r*0.75, p.r*0.75);
-    ctx.lineTo(p.r*0.95, p.r*0.55);
-    ctx.lineTo(p.r*0.55, p.r*0.55);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(-p.r*0.75, p.r*0.75);
-    ctx.lineTo(-p.r*0.95, p.r*0.55);
-    ctx.lineTo(-p.r*0.55, p.r*0.55);
-    ctx.closePath();
-    ctx.fill();
+    // купол кабины — крупный округлый "фонарь", как на референсе
+    targetCtx.fillStyle = '#062a3f';
+    targetCtx.beginPath();
+    targetCtx.ellipse(0, -r*0.28, r*0.34, r*0.42, 0, 0, Math.PI*2);
+    targetCtx.fill();
+    targetCtx.strokeStyle = 'rgba(255,255,255,0.25)';
+    targetCtx.lineWidth = Math.max(1, r*0.025);
+    targetCtx.stroke();
+    targetCtx.fillStyle = 'rgba(180,240,255,0.85)';
+    targetCtx.beginPath();
+    targetCtx.ellipse(-r*0.1, -r*0.42, r*0.11, r*0.17, -0.4, 0, Math.PI*2);
+    targetCtx.fill();
+
+    // боковые двигательные капсулы (вместо треугольных крыльев)
+    targetCtx.fillStyle = colScheme.wing;
+    targetCtx.beginPath();
+    targetCtx.ellipse(r*0.78, r*0.42, r*0.16, r*0.28, -0.25, 0, Math.PI*2);
+    targetCtx.fill();
+    targetCtx.beginPath();
+    targetCtx.ellipse(-r*0.78, r*0.42, r*0.16, r*0.28, 0.25, 0, Math.PI*2);
+    targetCtx.fill();
+    // тёмные ободки капсул для объёма
+    targetCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+    targetCtx.lineWidth = Math.max(1, r*0.02);
+    targetCtx.beginPath();
+    targetCtx.ellipse(r*0.78, r*0.42, r*0.16, r*0.28, -0.25, 0, Math.PI*2);
+    targetCtx.stroke();
+    targetCtx.beginPath();
+    targetCtx.ellipse(-r*0.78, r*0.42, r*0.16, r*0.28, 0.25, 0, Math.PI*2);
+    targetCtx.stroke();
 
     if(colScheme.symbol === 'heart'){
-      const hs = p.r*0.34;
-      ctx.save();
-      ctx.translate(0, p.r*0.18);
-      ctx.scale(hs, hs);
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = 'rgba(255,255,255,0.8)';
-      ctx.shadowBlur = 6;
-      ctx.beginPath();
-      ctx.moveTo(0, 0.32);
-      ctx.bezierCurveTo(0, 0.1, -0.28, -0.12, -0.55, 0.1);
-      ctx.bezierCurveTo(-0.85, 0.38, -0.5, 0.72, 0, 1.02);
-      ctx.bezierCurveTo(0.5, 0.72, 0.85, 0.38, 0.55, 0.1);
-      ctx.bezierCurveTo(0.28, -0.12, 0, 0.1, 0, 0.32);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+      const hs = r*0.34;
+      targetCtx.save();
+      targetCtx.translate(0, r*0.18);
+      targetCtx.scale(hs, hs);
+      targetCtx.fillStyle = '#ffffff';
+      targetCtx.shadowColor = 'rgba(255,255,255,0.8)';
+      targetCtx.shadowBlur = 6;
+      targetCtx.beginPath();
+      targetCtx.moveTo(0, 0.32);
+      targetCtx.bezierCurveTo(0, 0.1, -0.28, -0.12, -0.55, 0.1);
+      targetCtx.bezierCurveTo(-0.85, 0.38, -0.5, 0.72, 0, 1.02);
+      targetCtx.bezierCurveTo(0.5, 0.72, 0.85, 0.38, 0.55, 0.1);
+      targetCtx.bezierCurveTo(0.28, -0.12, 0, 0.1, 0, 0.32);
+      targetCtx.closePath();
+      targetCtx.fill();
+      targetCtx.restore();
     }
 
-    ctx.restore();
-    ctx.globalAlpha = 1;
+    targetCtx.restore();
+    targetCtx.globalAlpha = 1;
   }
 
 
@@ -631,6 +650,7 @@
   }
 
   function startGame(){
+    currentMode = gameMode;
     score = 0;
     maxHP = BASE_MAX_HP + hpLevel;
     hp = maxHP;
@@ -693,7 +713,12 @@
       <div class="bestLine">★ Рекорд: ${best}</div>
       <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
       <div id="colorPicker"></div>
+      <div class="modeSwitch">
+        <button id="modeEarthBtn" class="modeBtn active">ЗЕМЛЯ</button>
+        <button id="modeSpaceBtn" class="modeBtn">КОСМОС</button>
+      </div>
       <div id="metaShop"></div>
+      <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
       <button id="playBtn">ЕЩЁ РАЗ</button>
       <br>
       <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink">Наше сообщество ВКонтакте →</a>
@@ -702,6 +727,8 @@
     renderColorPicker();
     renderMetaShop();
     document.getElementById('playBtn').addEventListener('click', startGame);
+    document.getElementById('hangarOpenBtn').addEventListener('click', openHangar);
+    bindModeSwitch();
   }
 
   function pauseGame(){
@@ -754,7 +781,12 @@
       <div class="sub">Уклоняйся, стреляй по роботам-дронам и набирай очки.<br>Одно столкновение — и миссия окончена.</div>
       <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
       <div id="colorPicker"></div>
+      <div class="modeSwitch">
+        <button id="modeEarthBtn" class="modeBtn active">ЗЕМЛЯ</button>
+        <button id="modeSpaceBtn" class="modeBtn">КОСМОС</button>
+      </div>
       <div id="metaShop"></div>
+      <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
       <button id="playBtn">ИГРАТЬ</button>
       <br>
       <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink">Наше сообщество ВКонтакте →</a>
@@ -763,14 +795,108 @@
     renderColorPicker();
     renderMetaShop();
     document.getElementById('playBtn').addEventListener('click', startGame);
+    document.getElementById('hangarOpenBtn').addEventListener('click', openHangar);
+    bindModeSwitch();
   }
 
   pauseBtn.addEventListener('click', pauseGame);
   resumeBtn.addEventListener('click', resumeGame);
   exitBtn.addEventListener('click', exitToMenu);
 
+  // ---------- Ангар (просмотр/экипировка кораблей) ----------
+  const hangarOverlay = document.getElementById('hangarOverlay');
+  const hangarCanvas = document.getElementById('hangarCanvas');
+  const hangarCtx = hangarCanvas.getContext('2d');
+  const hangarShipNameEl = document.getElementById('hangarShipName');
+  const hangarEquipBtn = document.getElementById('hangarEquipBtn');
+  const hangarPrevBtn = document.getElementById('hangarPrevBtn');
+  const hangarNextBtn = document.getElementById('hangarNextBtn');
+  const hangarCloseBtn = document.getElementById('hangarCloseBtn');
+  let hangarPreviewColor = shipColor;
+
+  function renderHangarPreview(){
+    hangarCtx.clearRect(0,0,hangarCanvas.width, hangarCanvas.height);
+    drawShipOn(hangarCtx, hangarCanvas.width/2, hangarCanvas.height/2, 62, -0.08, hangarPreviewColor, false, false);
+    const info = SHIP_COLORS[hangarPreviewColor] || SHIP_COLORS.blue;
+    hangarShipNameEl.textContent = info.name;
+    const owned = unlockedColors.includes(hangarPreviewColor);
+    if(hangarPreviewColor === shipColor){
+      hangarEquipBtn.textContent = 'Экипировано';
+      hangarEquipBtn.disabled = true;
+    } else if(owned){
+      hangarEquipBtn.textContent = 'Экипировать';
+      hangarEquipBtn.disabled = false;
+    } else {
+      hangarEquipBtn.textContent = `Нужно ${info.price} монет`;
+      hangarEquipBtn.disabled = true;
+    }
+  }
+
+  function openHangar(){
+    hangarPreviewColor = shipColor;
+    hangarOverlay.style.display = 'flex';
+    renderHangarPreview();
+  }
+
+  function closeHangar(){
+    hangarOverlay.style.display = 'none';
+  }
+
+  function cycleHangar(dir){
+    const keys = Object.keys(SHIP_COLORS);
+    let idx = keys.indexOf(hangarPreviewColor);
+    idx = (idx + dir + keys.length) % keys.length;
+    hangarPreviewColor = keys[idx];
+    renderHangarPreview();
+  }
+
+  hangarPrevBtn.addEventListener('click', ()=>cycleHangar(-1));
+  hangarNextBtn.addEventListener('click', ()=>cycleHangar(1));
+  hangarCloseBtn.addEventListener('click', closeHangar);
+  hangarEquipBtn.addEventListener('click', ()=>{
+    if(unlockedColors.includes(hangarPreviewColor) && hangarPreviewColor !== shipColor){
+      shipColor = hangarPreviewColor;
+      saveShipColor();
+      renderColorPicker();
+      renderHangarPreview();
+    }
+  });
+
+  // ---------- переключатель режима: Земля / Космос ----------
+  const modeAlertEl = document.getElementById('modeAlert');
+  let gameMode = 'earth';
+
+  function bindModeSwitch(){
+    const earthBtn = document.getElementById('modeEarthBtn');
+    const spaceBtn = document.getElementById('modeSpaceBtn');
+    if(!earthBtn || !spaceBtn) return;
+    earthBtn.classList.toggle('active', gameMode === 'earth');
+    spaceBtn.classList.toggle('active', gameMode === 'space');
+    earthBtn.addEventListener('click', ()=>{
+      gameMode = 'earth';
+      earthBtn.classList.add('active');
+      spaceBtn.classList.remove('active');
+    });
+    spaceBtn.addEventListener('click', ()=>{
+      if(gameMode === 'space') return;
+      gameMode = 'space';
+      earthBtn.classList.remove('active');
+      spaceBtn.classList.add('active');
+      showModeAlert();
+    });
+  }
+
+  function showModeAlert(){
+    modeAlertEl.classList.add('show');
+    setTimeout(()=>{
+      modeAlertEl.classList.remove('show');
+    }, 2400);
+  }
+
   renderColorPicker();
   renderMetaShop();
+  bindModeSwitch();
   playBtn.addEventListener('click', startGame);
+  document.getElementById('hangarOpenBtn').addEventListener('click', openHangar);
 
   requestAnimationFrame(loop);

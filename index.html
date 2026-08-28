@@ -93,7 +93,7 @@
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
     box-shadow: 0 0 8px rgba(255,190,0,0.9);
   }
-  #upgradeOverlay, #pauseOverlay, #storiesOverlay {
+  #upgradeOverlay, #pauseOverlay, #storiesOverlay, #hangarOverlay {
     position: absolute;
     top:0; left:0; width:100%; height:100%;
     display: none;
@@ -104,7 +104,7 @@
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
   }
-  #upgradeOverlay .box, #pauseOverlay .box, #storiesOverlay .box {
+  #upgradeOverlay .box, #pauseOverlay .box, #storiesOverlay .box, #hangarOverlay .box {
     text-align: center;
     padding: 26px 30px;
     max-width: 320px;
@@ -115,7 +115,7 @@
     -webkit-backdrop-filter: blur(14px);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 30px rgba(0,0,0,0.35);
   }
-  #upgradeOverlay h2, #pauseOverlay h2, #storiesOverlay h2 {
+  #upgradeOverlay h2, #pauseOverlay h2, #storiesOverlay h2, #hangarOverlay h2 {
     color: #ffd76a;
     font-size: 24px;
     letter-spacing: 1px;
@@ -132,6 +132,145 @@
     gap: 14px;
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  #hangarOverlay .box.hangarBox {
+    max-width: 340px;
+  }
+  .hangarStage {
+    position: relative;
+    width: 260px; height: 210px;
+    margin: 4px auto 14px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(160deg, #0d1b28 0%, #060c14 55%, #030509 100%);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 0 40px rgba(0,180,255,0.15);
+  }
+  .hangarStage::before, .hangarStage::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0,210,255,0.55), transparent);
+    box-shadow: 0 0 8px rgba(0,210,255,0.6);
+  }
+  .hangarStage::before { top: 20%; }
+  .hangarStage::after {
+    bottom: 22%;
+    background: linear-gradient(90deg, transparent, rgba(255,150,50,0.5), transparent);
+    box-shadow: 0 0 8px rgba(255,150,50,0.5);
+  }
+  #hangarCanvas {
+    position: relative;
+    z-index: 1;
+    width: 100%; height: 100%;
+    display: block;
+    animation: hangarFloat 4s ease-in-out infinite;
+  }
+  @keyframes hangarFloat {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  #hangarShipName {
+    color: #eafcff;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    text-shadow: 0 0 10px rgba(0,220,255,0.6);
+  }
+  .hangarNav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .hangarArrow {
+    min-width: 0;
+    padding: 9px 14px;
+    font-size: 16px;
+  }
+  .hangarOpenBtn {
+    margin-top: 10px;
+    padding: 10px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #eafcff;
+    background: rgba(255,255,255,0.08);
+    border: 1.5px solid rgba(127,227,255,0.5);
+    border-radius: 40px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 14px rgba(0,190,255,0.35);
+    transition: transform .15s ease, box-shadow .2s ease;
+    pointer-events: all;
+  }
+  .hangarOpenBtn:hover { transform: scale(1.05); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 20px rgba(0,210,255,0.55); }
+  .hangarOpenBtn:active { transform: scale(0.95); }
+
+  /* ---------- переключатель режима: Земля / Космос ---------- */
+  .modeSwitch {
+    display: flex;
+    gap: 8px;
+    margin: 6px 0 12px;
+    pointer-events: all;
+  }
+  .modeBtn {
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  .modeBtn.active {
+    color: #001019;
+    background: linear-gradient(180deg,#4be9ff,#00b4ff);
+    border-color: rgba(255,255,255,0.6);
+    box-shadow: 0 0 16px rgba(0,190,255,0.6);
+  }
+  .modeBtn:active { transform: scale(0.94); }
+
+  /* ---------- предупреждение при выборе режима "Космос" ---------- */
+  #modeAlert {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    pointer-events: none;
+  }
+  #modeAlert.show { display: flex; }
+  #modeAlert .flashLayer {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,30,30,0.35);
+    animation: modeFlash 0.5s steps(1) 4;
+  }
+  @keyframes modeFlash {
+    0%,100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+  #modeAlert .alertText {
+    position: relative;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: #ff4d4d;
+    text-shadow: 0 0 20px rgba(255,60,60,0.9), 0 0 40px rgba(255,0,0,0.6);
+    opacity: 0;
+    animation: alertReveal 0.4s ease-out 1.8s forwards;
+  }
+  @keyframes alertReveal {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
   }
   #pauseBtn {
     position: absolute;
@@ -152,7 +291,9 @@
     z-index: 15;
     cursor: pointer;
     box-shadow: 0 0 14px rgba(0,200,255,0.4), inset 0 0 0 1px rgba(255,255,255,0.15);
+    transition: transform .15s ease, box-shadow .2s ease;
   }
+  #pauseBtn:hover { box-shadow: 0 0 20px rgba(0,220,255,0.65), inset 0 0 0 1px rgba(255,255,255,0.2); }
   #pauseBtn:active { transform: translateX(-50%) scale(0.9); }
 
   #metaShop {
@@ -196,17 +337,21 @@
     letter-spacing: 0.5px;
     color: #001019;
     background: linear-gradient(180deg,#4be9ff,#00b4ff);
-    border: none;
+    border: 1.5px solid rgba(255,255,255,0.5);
     border-radius: 12px;
     cursor: pointer;
-    box-shadow: 0 0 12px rgba(0,190,255,0.5);
+    box-shadow: 0 0 12px rgba(0,190,255,0.5), inset 0 2px 2px rgba(255,255,255,0.5);
+    transition: transform .15s ease, box-shadow .2s ease;
   }
+  .metaBtn:hover { transform: scale(1.06); }
   .metaBtn:active { transform: scale(0.94); }
   .metaBtn:disabled {
     background: rgba(255,255,255,0.12);
     color: rgba(255,255,255,0.4);
     box-shadow: none;
+    border-color: rgba(255,255,255,0.15);
     cursor: default;
+    transform: none;
   }
 
   #storiesOverlay .box.storiesBox {
@@ -251,23 +396,27 @@
     letter-spacing: 1px;
     color: #001019;
     background: linear-gradient(180deg,#4be9ff,#00b4ff);
-    border: none;
+    border: 1.5px solid rgba(255,255,255,0.5);
     border-radius: 16px;
-    box-shadow: 0 0 20px rgba(0,190,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.25);
+    box-shadow: 0 0 20px rgba(0,190,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.5);
     cursor: pointer;
     min-width: 120px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .15s ease, box-shadow .2s ease;
   }
+  .upgradeBtn:hover { transform: scale(1.05); }
   .upgradeBtn.shieldBtn {
     background: linear-gradient(180deg,#ffe98a,#ffb300);
-    box-shadow: 0 0 20px rgba(255,180,0,0.6), inset 0 -3px 6px rgba(0,0,0,0.25);
+    box-shadow: 0 0 20px rgba(255,180,0,0.6), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.5);
   }
   .upgradeBtn.doubleBtn {
     background: linear-gradient(180deg,#c3b3ff,#7a5cff);
-    box-shadow: 0 0 20px rgba(122,92,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.25);
+    box-shadow: 0 0 20px rgba(122,92,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.5);
   }
   .upgradeBtn.damageBtn {
     background: linear-gradient(180deg,#ff9d9d,#e23b3b);
-    box-shadow: 0 0 20px rgba(226,59,59,0.6), inset 0 -3px 6px rgba(0,0,0,0.25);
+    box-shadow: 0 0 20px rgba(226,59,59,0.6), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.5);
   }
   .upgradeBtn:active { transform: scale(0.95); }
 
@@ -339,19 +488,34 @@
     letter-spacing: 2px;
     color: #001019;
     background: linear-gradient(180deg,#4be9ff,#00b4ff);
-    border: none;
+    border: 1.5px solid rgba(255,255,255,0.55);
     border-radius: 50px;
-    box-shadow: 0 0 25px rgba(0,190,255,0.7), inset 0 -3px 6px rgba(0,0,0,0.25);
+    box-shadow: 0 0 25px rgba(0,190,255,0.7), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.55);
     cursor: pointer;
     pointer-events: all;
-    transition: transform .12s ease, box-shadow .2s ease;
+    position: relative;
+    overflow: hidden;
+    transition: transform .15s ease, box-shadow .2s ease;
     animation: playBtnPulse 2.8s ease-in-out infinite;
   }
-  #playBtn:hover { transform: scale(1.05); }
+  #playBtn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -60%;
+    width: 40%; height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform: skewX(-20deg);
+    animation: playBtnSheen 3.4s ease-in-out infinite;
+  }
+  #playBtn:hover { transform: scale(1.06); box-shadow: 0 0 36px rgba(0,210,255,0.95), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.6); }
   #playBtn:active { transform: scale(0.94); }
   @keyframes playBtnPulse {
-    0%,100% { box-shadow: 0 0 22px rgba(0,190,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.25); }
-    50% { box-shadow: 0 0 36px rgba(0,190,255,0.9), inset 0 -3px 6px rgba(0,0,0,0.25); }
+    0%,100% { box-shadow: 0 0 22px rgba(0,190,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.55); }
+    50% { box-shadow: 0 0 38px rgba(0,190,255,0.95), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.55); }
+  }
+  @keyframes playBtnSheen {
+    0% { left: -60%; }
+    35%, 100% { left: 130%; }
   }
 
   .dustLayer {
@@ -653,6 +817,11 @@
 
 <button id="pauseBtn" aria-label="Пауза">❚❚</button>
 
+<div id="modeAlert" aria-hidden="true">
+  <div class="flashLayer"></div>
+  <div class="alertText">⚠ КОСМИЧЕСКИЕ ПИРАТЫ</div>
+</div>
+
 <div id="pauseOverlay">
   <div class="box">
     <h2>ПАУЗА</h2>
@@ -661,6 +830,22 @@
       <button id="resumeBtn" class="upgradeBtn">Продолжить</button>
       <button id="exitBtn" class="upgradeBtn shieldBtn">Выйти в меню</button>
     </div>
+  </div>
+</div>
+
+<div id="hangarOverlay">
+  <div class="box hangarBox">
+    <h2>АНГАР</h2>
+    <div class="hangarStage">
+      <canvas id="hangarCanvas" width="260" height="210"></canvas>
+    </div>
+    <div id="hangarShipName">Синий</div>
+    <div class="hangarNav">
+      <button id="hangarPrevBtn" class="metaBtn hangarArrow">◀</button>
+      <button id="hangarEquipBtn" class="upgradeBtn">Экипировать</button>
+      <button id="hangarNextBtn" class="metaBtn hangarArrow">▶</button>
+    </div>
+    <button id="hangarCloseBtn" class="upgradeBtn shieldBtn">Закрыть</button>
   </div>
 </div>
 
@@ -702,7 +887,12 @@
   <div class="sub">Уклоняйся, стреляй по роботам-дронам и набирай очки.<br>Одно столкновение — и миссия окончена.</div>
   <div id="currencyLine">Очки за роботов: <span id="currencyVal">0</span></div>
   <div id="colorPicker"></div>
+  <div class="modeSwitch">
+    <button id="modeEarthBtn" class="modeBtn active">ЗЕМЛЯ</button>
+    <button id="modeSpaceBtn" class="modeBtn">КОСМОС</button>
+  </div>
   <div id="metaShop"></div>
+  <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
   <button id="playBtn">ИГРАТЬ</button>
   <br>
   <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink" id="vkCommunityLink1">Наше сообщество ВКонтакте →</a>
@@ -721,9 +911,9 @@
 <!-- Игровые модули: порядок важен (background/upgrades/enemies не обёрнуты в функцию,
      поэтому их let/const видны следующим скриптам; game.js подключается последним
      и запускает главный цикл) -->
-<script src="background.js?v=6"></script>
-<script src="upgrades.js?v=13"></script>
-<script src="enemies.js?v=7"></script>
-<script src="game.js?v=14"></script>
+<script src="background.js?v=8"></script>
+<script src="upgrades.js?v=14"></script>
+<script src="enemies.js?v=10"></script>
+<script src="game.js?v=18"></script>
 </body>
 </html>
