@@ -93,7 +93,7 @@
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
     box-shadow: 0 0 8px rgba(255,190,0,0.9);
   }
-  #upgradeOverlay, #pauseOverlay, #storiesOverlay, #hangarOverlay {
+  #upgradeOverlay, #pauseOverlay, #storiesOverlay, #hangarOverlay, #reviveOverlay {
     position: absolute;
     top:0; left:0; width:100%; height:100%;
     display: none;
@@ -104,7 +104,7 @@
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
   }
-  #upgradeOverlay .box, #pauseOverlay .box, #storiesOverlay .box, #hangarOverlay .box {
+  #upgradeOverlay .box, #pauseOverlay .box, #storiesOverlay .box, #hangarOverlay .box, #reviveOverlay .box {
     text-align: center;
     padding: 26px 30px;
     max-width: 320px;
@@ -115,19 +115,19 @@
     -webkit-backdrop-filter: blur(14px);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 8px 30px rgba(0,0,0,0.35);
   }
-  #upgradeOverlay h2, #pauseOverlay h2, #storiesOverlay h2, #hangarOverlay h2 {
+  #upgradeOverlay h2, #pauseOverlay h2, #storiesOverlay h2, #hangarOverlay h2, #reviveOverlay h2 {
     color: #ffd76a;
     font-size: 24px;
     letter-spacing: 1px;
     text-shadow: 0 0 18px rgba(255,215,100,0.6);
     margin-bottom: 6px;
   }
-  #upgradeOverlay .sub, #pauseOverlay .sub, #storiesOverlay .sub {
+  #upgradeOverlay .sub, #pauseOverlay .sub, #storiesOverlay .sub, #reviveOverlay .sub {
     color: #9fdcff;
     font-size: 14px;
     margin-bottom: 22px;
   }
-  #upgradeOverlay .choices, #pauseOverlay .choices, #storiesOverlay .choices {
+  #upgradeOverlay .choices, #pauseOverlay .choices, #storiesOverlay .choices, #reviveOverlay .choices {
     display: flex;
     gap: 14px;
     justify-content: center;
@@ -209,6 +209,30 @@
   }
   .hangarOpenBtn:hover { transform: scale(1.05); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 20px rgba(0,210,255,0.55); }
   .hangarOpenBtn:active { transform: scale(0.95); }
+
+  .menuBtnRow {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .menuBtnRow .hangarOpenBtn { margin-top: 0; }
+  .leaderboardBtn {
+    margin-top: 10px;
+    padding: 10px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #2a1d00;
+    background: linear-gradient(180deg,#ffe98a,#ffb300);
+    border: 1.5px solid rgba(255,255,255,0.5);
+    border-radius: 40px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 0 14px rgba(255,180,0,0.45);
+    transition: transform .15s ease, box-shadow .2s ease;
+    pointer-events: all;
+  }
+  .leaderboardBtn:hover { transform: scale(1.05); }
+  .leaderboardBtn:active { transform: scale(0.95); }
 
   /* ---------- переключатель режима: Земля / Космос ---------- */
   .modeSwitch {
@@ -294,6 +318,29 @@
     transition: transform .15s ease, box-shadow .2s ease;
   }
   #pauseBtn:hover { box-shadow: 0 0 20px rgba(0,220,255,0.65), inset 0 0 0 1px rgba(255,255,255,0.2); }
+
+  #soundToggleBtn {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    right: calc(env(safe-area-inset-right, 0px) + 16px);
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(8,18,32,0.6);
+    color: #eafcff;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 25;
+    cursor: pointer;
+    pointer-events: all;
+    box-shadow: 0 0 14px rgba(0,200,255,0.4), inset 0 0 0 1px rgba(255,255,255,0.15);
+    transition: transform .15s ease, box-shadow .2s ease;
+  }
+  #soundToggleBtn:hover { box-shadow: 0 0 20px rgba(0,220,255,0.65), inset 0 0 0 1px rgba(255,255,255,0.2); }
+  #soundToggleBtn:active { transform: scale(0.9); }
   #pauseBtn:active { transform: translateX(-50%) scale(0.9); }
 
   #metaShop {
@@ -419,6 +466,12 @@
     box-shadow: 0 0 20px rgba(226,59,59,0.6), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 2px 3px rgba(255,255,255,0.5);
   }
   .upgradeBtn:active { transform: scale(0.95); }
+  .upgradeBtn:disabled {
+    cursor: default;
+    filter: grayscale(0.6);
+    transform: none !important;
+    animation: none !important;
+  }
 
   #overlay {
     position: absolute;
@@ -826,6 +879,7 @@
 </div>
 
 <button id="pauseBtn" aria-label="Пауза">❚❚</button>
+<button id="soundToggleBtn" aria-label="Звук">🔊</button>
 
 <div id="modeAlert" aria-hidden="true">
   <div class="flashLayer"></div>
@@ -839,6 +893,18 @@
     <div class="choices">
       <button id="resumeBtn" class="upgradeBtn">Продолжить</button>
       <button id="exitBtn" class="upgradeBtn shieldBtn">Выйти в меню</button>
+    </div>
+  </div>
+</div>
+
+<div id="reviveOverlay">
+  <div class="box">
+    <h2>КОРАБЛЬ УНИЧТОЖЕН</h2>
+    <div class="sub">Можно возродиться прямо здесь и продолжить забег</div>
+    <div class="choices">
+      <button id="reviveCoinsBtn" class="upgradeBtn">Возродиться · 100 монет</button>
+      <button id="reviveAdBtn" class="upgradeBtn doubleBtn">Возродиться за рекламу</button>
+      <button id="reviveDeclineBtn" class="upgradeBtn shieldBtn">Закончить миссию</button>
     </div>
   </div>
 </div>
@@ -902,7 +968,10 @@
     <button id="modeSpaceBtn" class="modeBtn">КОСМОС</button>
   </div>
   <div id="metaShop"></div>
-  <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
+  <div class="menuBtnRow">
+    <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
+    <button id="leaderboardOpenBtn" class="leaderboardBtn">🏆 ЛИДЕРЫ</button>
+  </div>
   <button id="playBtn">ИГРАТЬ</button>
   <br>
   <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink" id="vkCommunityLink1">Наше сообщество ВКонтакте →</a>
@@ -922,8 +991,8 @@
      поэтому их let/const видны следующим скриптам; game.js подключается последним
      и запускает главный цикл) -->
 <script src="background.js?v=8"></script>
-<script src="upgrades.js?v=14"></script>
-<script src="enemies.js?v=10"></script>
-<script src="game.js?v=18"></script>
+<script src="upgrades.js?v=15"></script>
+<script src="enemies.js?v=11"></script>
+<script src="game.js?v=19"></script>
 </body>
 </html>

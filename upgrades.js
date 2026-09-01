@@ -83,7 +83,23 @@
   }
   const PLATFORM = detectPlatform();
 
-  // ---------- rewarded ad (AdsGram SDK, Telegram Mini App) ----------
+  // ---------- таблица лидеров среди друзей (нативный VK Bridge, без своего сервера) ----------
+  function showFriendsLeaderboard(){
+    if(PLATFORM !== 'vk' || !window.vkBridge){
+      alert('Таблица лидеров доступна только внутри ВКонтакте.');
+      return;
+    }
+    try {
+      vkBridge.send('VKWebAppShowLeaderboardBox', { user_result: best })
+        .catch(()=>{
+          alert('Не удалось открыть таблицу лидеров. Попробуй позже.');
+        });
+    } catch(e) {
+      alert('Не удалось открыть таблицу лидеров. Попробуй позже.');
+    }
+  }
+
+
   const AD_REWARD_COINS = 50;
   const ADSGRAM_BLOCK_ID = "42733";
   // Модерация пройдена — показываем реальную рекламу (реальные показы = реальные деньги).
@@ -209,6 +225,27 @@
     }).catch((result)=>{
       // реклама не досмотрена/нет рекламы для показа/ошибка — ничего не начисляем
       alert('Реклама сейчас недоступна (возможно, площадка ещё на модерации в AdsGram). Попробуй позже.');
+    });
+  }
+
+  // ---------- реклама за возрождение (без начисления монет, коллбэки снаружи) ----------
+  function watchAdForRevive(onSuccess, onFail){
+    if(PLATFORM === 'vk'){
+      vkShowRewarded(onSuccess, onFail || (()=>{
+        alert('Реклама сейчас недоступна во ВКонтакте. Попробуй позже.');
+      }));
+      return;
+    }
+    if(!adController){
+      if(onFail) onFail();
+      else alert('Реклама пока недоступна: SDK не загрузился.');
+      return;
+    }
+    adController.show().then(()=>{
+      if(onSuccess) onSuccess();
+    }).catch(()=>{
+      if(onFail) onFail();
+      else alert('Реклама сейчас недоступна (возможно, площадка ещё на модерации). Попробуй позже.');
     });
   }
 
@@ -386,6 +423,7 @@
   }
 
   function closeUpgrade(){
+    playSfx('upgrade');
     upgradeOverlay.style.display = 'none';
     nextUpgradeScore += UPGRADE_INTERVAL;
     if(state==='upgrade') state = 'playing';

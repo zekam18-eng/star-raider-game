@@ -536,10 +536,12 @@
             explode(e.x, e.y, e.type==='heavy' || e.isBoss);
             enemies.splice(i,1);
             if(e.isBoss){
+              playSfx('bossExplosion');
               score += e.bossKind==='ship' ? 2000 : 800;
               currency += e.bossKind==='ship' ? 40 : 15;
               bossActive = false;
             } else {
+              playSfx('explosion');
               score += e.type==='heavy' ? 30 : (e.type==='zig' ? 20 : 10);
               currency += e.type==='heavy' ? 3 : (e.type==='zig' ? 2 : 1);
               maybeDropPowerup(e.x, e.y);

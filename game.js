@@ -43,6 +43,8 @@
   let boss2000Spawned = false;
   let boss5000Spawned = false;
   let nightMode = false;
+  let nightModeTriggered = false;
+  let revivesUsedThisRun = 0;
   const LOOP_SCORE = 10000;
   let t = 0;
   let shakeTime = 0, shakeMag = 0;
@@ -107,6 +109,96 @@
   }
 
   // ---------- entities ----------
+  // ---------- звук (синтез через Web Audio API, без внешних файлов) ----------
+  let audioCtx = null;
+  let masterGain = null;
+  let soundOn = localStorage.getItem('sr_sound') !== 'off';
+
+  function ensureAudio(){
+    if(audioCtx) return;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.5;
+      masterGain.connect(audioCtx.destination);
+    } catch(e) {
+      // Web Audio недоступен — тихо игнорируем
+    }
+  }
+
+  function playTone(freq, duration, type, vol, freqEnd){
+    if(!soundOn) return;
+    ensureAudio();
+    if(!audioCtx) return;
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'square';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    if(freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), audioCtx.currentTime + duration);
+    gain.gain.setValueAtTime(vol || 0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function playNoise(duration, vol){
+    if(!soundOn) return;
+    ensureAudio();
+    if(!audioCtx) return;
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const bufferSize = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(vol || 0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+    noise.start();
+  }
+
+  function playSfx(name){
+    switch(name){
+      case 'shoot': playTone(880, 0.06, 'square', 0.05, 500); break;
+      case 'hit': playTone(220, 0.25, 'sawtooth', 0.22, 60); break;
+      case 'explosion': playNoise(0.28, 0.22); playTone(120, 0.2, 'sawtooth', 0.14, 40); break;
+      case 'bossExplosion': playNoise(0.6, 0.32); playTone(90, 0.5, 'sawtooth', 0.22, 30); break;
+      case 'powerup': playTone(400, 0.15, 'sine', 0.18, 900); break;
+      case 'heal': playTone(600, 0.2, 'sine', 0.18, 1000); break;
+      case 'upgrade':
+        playTone(500, 0.12, 'triangle', 0.18, 800);
+        setTimeout(()=>playTone(800, 0.15, 'triangle', 0.18, 1200), 90);
+        break;
+      case 'click': playTone(700, 0.05, 'square', 0.08); break;
+      case 'revive': playTone(300, 0.3, 'sine', 0.22, 900); break;
+      case 'gameover': playTone(200, 0.6, 'sawtooth', 0.22, 60); break;
+    }
+  }
+
+  function toggleSound(){
+    soundOn = !soundOn;
+    localStorage.setItem('sr_sound', soundOn ? 'on' : 'off');
+    updateSoundBtn();
+    if(soundOn) playSfx('click');
+  }
+
+  function updateSoundBtn(){
+    const btn = document.getElementById('soundToggleBtn');
+    if(btn) btn.textContent = soundOn ? '🔊' : '🔇';
+  }
+
   let currentMode = 'earth'; // 'earth' | 'space' — фиксируется при старте игры из gameMode
   let bullets = [];
   let enemies = [];
@@ -117,17 +209,16 @@
 
   // ---------- временные бусты (дроп с врагов) ----------
   const POWERUP_TYPES = {
-    rapid:  { name: 'Скорострельность', color: '#4be9ff' },
-    damage: { name: 'Перегрузка орудий', color: '#ff5f5f' },
-    score:  { name: 'x2 очки', color: '#ffd76a' }
+    rapid: { name: 'Ускорение стрельбы', color: '#4be9ff' },
+    heal:  { name: '+1 HP', color: '#4dffa0' }
   };
-  const POWERUP_DROP_CHANCE = 0.12;
-  const POWERUP_DURATION = 480; // ~8 сек при 60fps (dt-юниты)
+  const POWERUP_DROP_CHANCE = 0.1;
+  const POWERUP_DURATION = 480; // ~8 сек при 60fps (dt-юниты), актуально только для rapid
   let activeBuff = null; // { type, time }
   const buffIndicatorEl = document.getElementById('buffIndicator');
 
   function buffMultiplier(kind){
-    return (activeBuff && activeBuff.type === kind) ? (kind==='damage' ? 1.6 : 2) : 1;
+    return (activeBuff && activeBuff.type === kind) ? 2 : 1;
   }
 
   function maybeDropPowerup(x, y){
@@ -139,10 +230,19 @@
   }
 
   function applyPowerup(kind){
-    activeBuff = { type: kind, time: POWERUP_DURATION };
     const c = POWERUP_TYPES[kind].color;
     spawnParticles(player.x, player.y, 18, c, 4, 0.8);
-    renderBuffIndicator();
+    if(kind === 'heal'){
+      if(hp < maxHP){
+        hp++;
+        renderHP();
+      }
+      playSfx('heal');
+    } else {
+      activeBuff = { type: kind, time: POWERUP_DURATION };
+      renderBuffIndicator();
+      playSfx('powerup');
+    }
   }
 
   function updatePowerups(dt){
@@ -199,7 +299,8 @@
   }
 
   function shoot(){
-    const dmg = bulletDamage * buffMultiplier('damage');
+    const dmg = bulletDamage;
+    playSfx('shoot');
     if(doubleShot){
       bullets.push({ x: player.x + player.r, y: player.y - 10, vx: 11, r: 4, dmg });
       bullets.push({ x: player.x + player.r, y: player.y + 10, vx: 11, r: 4, dmg });
@@ -445,6 +546,7 @@
 
 
   function onPlayerHit(ex,ey){
+    playSfx('hit');
     if(shield > 0){
       shield--;
       renderShield();
@@ -457,7 +559,11 @@
     explode((player.x+ex)/2, (player.y+ey)/2, true);
     player.invuln = 100;
     if(hp<=0){
-      endGame();
+      if(revivesUsedThisRun < 1){
+        showReviveOffer();
+      } else {
+        endGame();
+      }
     }
   }
 
@@ -591,15 +697,16 @@
         renderBuffIndicator();
       }
 
-      score += 0.12 * dt * buffMultiplier('score');
+      score += 0.12 * dt;
       scoreEl.textContent = Math.floor(score);
 
-      if(score >= LOOP_SCORE){
-        triggerLoopRestart();
-      } else {
-        maybeShowUpgrade();
-        maybeShowMilestoneAd(score);
+      if(score >= LOOP_SCORE && !nightModeTriggered){
+        nightModeTriggered = true;
+        nightMode = true;
+        shakeTime = 30; shakeMag = 18;
       }
+      maybeShowUpgrade();
+      maybeShowMilestoneAd(score);
     } else {
       updateParticles(dt);
     }
@@ -612,44 +719,16 @@
     }
     drawBullets();
     drawEnemyBullets();
-    if(state==='playing' || state==='dead' || state==='upgrade') drawShip();
+    if(state==='playing' || state==='dead' || state==='upgrade' || state==='revive') drawShip();
     if(state==='playing' || state==='upgrade') drawBossHealthBar();
 
     ctx.restore();
   }
 
   // ---------- game flow ----------
-  function triggerLoopRestart(){
-    const finalScore = Math.floor(score);
-    if(finalScore > best){
-      best = finalScore;
-      localStorage.setItem('sr_best', best);
-      bestEl.textContent = 'РЕКОРД: ' + best;
-    }
-    nightMode = true;
-    score = 0;
-    scoreEl.textContent = '0';
-    maxHP = BASE_MAX_HP + hpLevel;
-    hp = maxHP;
-    shield = 0;
-    doubleShot = false;
-    bulletDamage = 1;
-    nextUpgradeScore = UPGRADE_INTERVAL;
-    resetScoreAdMilestone();
-    boss2000Spawned = false;
-    boss5000Spawned = false;
-    bossActive = false;
-    bullets = []; enemies = []; enemyBullets = []; particles = []; powerups = []; activeBuff = null; renderBuffIndicator();
-    spawnTimer = 40;
-    resetPlayer();
-    renderHP();
-    renderShield();
-    upgradeOverlay.style.display = 'none';
-    if(state==='upgrade') state = 'playing';
-    shakeTime = 30; shakeMag = 18;
-  }
 
   function startGame(){
+    playSfx('click');
     currentMode = gameMode;
     score = 0;
     maxHP = BASE_MAX_HP + hpLevel;
@@ -661,6 +740,8 @@
     boss2000Spawned = false;
     boss5000Spawned = false;
     nightMode = false;
+    nightModeTriggered = false;
+    revivesUsedThisRun = 0;
     nextUpgradeScore = UPGRADE_INTERVAL;
     resetScoreAdMilestone();
     bullets = []; enemies = []; enemyBullets = []; particles = []; powerups = []; activeBuff = null; renderBuffIndicator();
@@ -677,7 +758,57 @@
     setTimeout(()=>{ hint.style.display='none'; }, 2600);
   }
 
+  // ---------- возрождение после смерти (за монеты или рекламу, 1 раз за забег) ----------
+  const reviveOverlay = document.getElementById('reviveOverlay');
+  const reviveCoinsBtn = document.getElementById('reviveCoinsBtn');
+  const reviveAdBtn = document.getElementById('reviveAdBtn');
+  const reviveDeclineBtn = document.getElementById('reviveDeclineBtn');
+  const REVIVE_COST = 100;
+
+  function showReviveOffer(){
+    state = 'revive';
+    reviveCoinsBtn.textContent = `Возродиться · ${REVIVE_COST} монет`;
+    reviveCoinsBtn.disabled = currency < REVIVE_COST;
+    reviveCoinsBtn.style.opacity = currency < REVIVE_COST ? '0.5' : '1';
+    reviveOverlay.style.display = 'flex';
+  }
+
+  function doRevive(){
+    playSfx('revive');
+    revivesUsedThisRun++;
+    reviveOverlay.style.display = 'none';
+    hp = Math.max(1, Math.min(maxHP, 1));
+    renderHP();
+    player.invuln = 120;
+    // очищаем ближайших врагов и вражеские пули вокруг корабля — честный рестарт
+    enemies = enemies.filter(e => {
+      const dx = e.x-player.x, dy = e.y-player.y;
+      return Math.sqrt(dx*dx+dy*dy) > 180;
+    });
+    enemyBullets = [];
+    shakeTime = 0;
+    state = 'playing';
+  }
+
+  reviveCoinsBtn.addEventListener('click', ()=>{
+    if(currency < REVIVE_COST) return;
+    currency -= REVIVE_COST;
+    saveCurrency();
+    doRevive();
+  });
+  reviveAdBtn.addEventListener('click', ()=>{
+    watchAdForRevive(
+      ()=>{ doRevive(); },
+      ()=>{ alert('Реклама сейчас недоступна. Попробуй монеты или заверши миссию.'); }
+    );
+  });
+  reviveDeclineBtn.addEventListener('click', ()=>{
+    reviveOverlay.style.display = 'none';
+    endGame();
+  });
+
   function endGame(){
+    playSfx('gameover');
     state = 'dead';
     hud.style.display = 'none';
     pauseBtn.style.display = 'none';
@@ -718,7 +849,10 @@
         <button id="modeSpaceBtn" class="modeBtn">КОСМОС</button>
       </div>
       <div id="metaShop"></div>
-      <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
+      <div class="menuBtnRow">
+        <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
+        <button id="leaderboardOpenBtn" class="leaderboardBtn">🏆 ЛИДЕРЫ</button>
+      </div>
       <button id="playBtn">ЕЩЁ РАЗ</button>
       <br>
       <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink">Наше сообщество ВКонтакте →</a>
@@ -728,6 +862,7 @@
     renderMetaShop();
     document.getElementById('playBtn').addEventListener('click', startGame);
     document.getElementById('hangarOpenBtn').addEventListener('click', openHangar);
+    document.getElementById('leaderboardOpenBtn').addEventListener('click', showFriendsLeaderboard);
     bindModeSwitch();
   }
 
@@ -786,7 +921,10 @@
         <button id="modeSpaceBtn" class="modeBtn">КОСМОС</button>
       </div>
       <div id="metaShop"></div>
-      <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
+      <div class="menuBtnRow">
+        <button id="hangarOpenBtn" class="hangarOpenBtn">🛰 АНГАР</button>
+        <button id="leaderboardOpenBtn" class="leaderboardBtn">🏆 ЛИДЕРЫ</button>
+      </div>
       <button id="playBtn">ИГРАТЬ</button>
       <br>
       <a href="https://vk.ru/futerstory" target="_blank" rel="noopener" class="vkCommunityLink">Наше сообщество ВКонтакте →</a>
@@ -796,10 +934,13 @@
     renderMetaShop();
     document.getElementById('playBtn').addEventListener('click', startGame);
     document.getElementById('hangarOpenBtn').addEventListener('click', openHangar);
+    document.getElementById('leaderboardOpenBtn').addEventListener('click', showFriendsLeaderboard);
     bindModeSwitch();
   }
 
   pauseBtn.addEventListener('click', pauseGame);
+  document.getElementById('soundToggleBtn').addEventListener('click', toggleSound);
+  updateSoundBtn();
   resumeBtn.addEventListener('click', resumeGame);
   exitBtn.addEventListener('click', exitToMenu);
 
@@ -898,5 +1039,6 @@
   bindModeSwitch();
   playBtn.addEventListener('click', startGame);
   document.getElementById('hangarOpenBtn').addEventListener('click', openHangar);
+    document.getElementById('leaderboardOpenBtn').addEventListener('click', showFriendsLeaderboard);
 
   requestAnimationFrame(loop);
